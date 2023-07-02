@@ -51,6 +51,11 @@ http://localhost:3000
 
 You may install a reverse proxy like Nginx to manage the https connections.  
 
+## Hacking
+If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js.  
+
+
+
 
 
 
