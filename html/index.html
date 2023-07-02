@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Aisland - DocuSign</title>
+    <script src="/js/web3.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="js/bundle.js"></script> 
+    <link rel="stylesheet" href="/css/bootstrap.min.css">   
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/docusign.css">   
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-auto bg-light sticky-top mx-0 px-0" >
+            <div class="d-flex flex-sm-column flex-row flex-nowrap bg-dark align-items-center sticky-top ">
+                <a href="https://aisland.io" class="d-block p-3 link-dark text-decoration-none" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Aisland">
+                    <img src="./img/logo.png" width="40" length="40">
+                </a>
+                <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap mb-auto mx-auto text-center align-items-center">
+                    <li class="nav-item">
+                        <a href="/index.html" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Home">
+                            <i class="bi-house fs-1"></i>
+                        </a>
+                    </li>
+                    <!--
+                    <li>
+                        <a href="#" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Info">
+                            <i class="bi-info-square fs-1"></i>
+                        </a>
+                    </li> -->
+                    <li>
+                        <a href="#" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Templates">
+                            <i class="bi-journal fs-1"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Settings">
+                            <i class="bi-gear fs-1"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Logs">
+                            <i class="bi-file-code fs-1"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/index.html" class="nav-link py-3 px-2" title="" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-original-title="Logout">
+                            <i class="bi bi-door-open fs-1"></i>
+                        </a>
+                    </li>
+                </ul>
+                
+            </div>
+        </div>
+        <!--<div class="col-8 p-3 min-vh-100" id="root"> style="background-color:0064C7" -->
+        <div class="col mx-0 px-0"  id="root">
+            <div class="'row">
+                <div class="col pb-1" style="background-color:#D2E3FF" ><center><h2>Blockchain Documents Signing</h2></center></div>
+            </div>
+            <div class="row"><div class="col" id="msg"></div></div>
+            <div class="row pt-3 pb-0">
+                <div class="col">
+                    <center>
+                        <button class="btn btn-outline-primary" id="connect">Connect Wallet</button>
+                    </center>
+                </div>
+            </div>
+            <div class="row">
+                
+                <div class="col"><center><img src="./img/contracts_exchange.png" width="400"></center></div>
+            </div>
+        </div>
+    </div>
+</div>
+  
+  <!-- Modal Document Actions-->
+  <div class="modal fade" id="documentActions" tabindex="-1" aria-labelledby="documentActionsLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title" id="documentActionsLabel">Actions</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+        <ul id="actionList">
+            <li id="docview"><a href="#view"><i class="bi bi-eye"></i> View</a></li>
+            <li id="docedit"><a href="#edit"><i class="bi bi-pencil-square"></i> Edit</a></li>
+            <li id="docsign"><a href="#sign"><i class="bi bi-vector-pen"></i> Sign</a></li>
+            <li id="doclink"><a href="#link"><i class="bi bi-link"></i> Link</a></li>
+            <li id="docdownload"><a href="#download"><i class="bi bi-download"></i> Download</a></li>
+            <li id="docreject"><a href="#sign"><i class="bi bi-journal-x"></i> Reject</a></li>
+            <li id="docdelete"><a href="#delete"><i class="bi bi-journal-minus"></i> Delete</a></li>
+        </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Sign Document-->
+  <div class="modal fade" id="signDocument" tabindex="-1" aria-labelledby="signDocumentLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title" id="signDocumentlabel">Document Signing</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="docsigndismiss"></button>
+        </div>
+        <div class="modal-body">
+        <table class="table table-striped-columns table-hover">
+            <tr><td>Description</td><td id="docsigndescription"></td></tr>
+            <tr><td>File Name</td><td id="docsignfilename"></td></tr>
+            <tr><td>Size</td><td id="docsignsize"></td></tr>
+            <tr><td>CounterParts:</td><td id="docsigncounterparts"></td></tr>
+        </table>
+        <button class="btn btn-outline-primary" id="docsignsign"><i class="bi bi-vector-pen"></i> Sign</button>
+        <button class="btn btn-outline-info" id="docsignview"><i class="bi bi-eye"></i>  View</button>
+        <button class="btn btn-outline-danger" id="docsignreject"><i class="bi bi-journal-x"></i> Reject</button>
+        <div id="docsignmsg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</html>
