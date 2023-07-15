@@ -17,9 +17,25 @@ let signDocumentModal = new bootstrap.Modal('#signDocument', {focus: true})
 
 
 let signaturetoken='';
+// check for token in session
+const sessionToken=window.sessionStorage.getItem("currentToken");
+const sessionAccount=window.sessionStorage.getItem("currentAccount");
+console.log(sessionAccount);
+if(sessionToken != null)
+  currentToken=sessionToken;
+if(sessionAccount != null){
+  currentAccount=JSON.parse(sessionAccount);
+  render_main('drafts');
+}
+
+
 // connect wallet button
 document.getElementById("connect").onclick = () => {
   connectWallet();
+};
+// logout
+document.getElementById("logout").onclick = () => {
+  window.sessionStorage.clear();
 };
 // actions on documents
 // document view
@@ -471,6 +487,10 @@ async function connectWallet(){
       }
       //render the document list UI
       currentToken=token;
+      // set a session variable
+      window.sessionStorage.setItem("currentToken",currentToken);
+      window.sessionStorage.setItem("currentAccount",JSON.stringify(currentAccount));
+
       render_main('drafts');
 
   }
