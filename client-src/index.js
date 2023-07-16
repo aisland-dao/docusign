@@ -1,7 +1,21 @@
 import { web3Accounts, web3Enable, web3FromSource,isWeb3Injected } from '@polkadot/extension-dapp';
 import qs from 'qs';
+import EditorJS from '@editorjs/editorjs'; 
+import NestedList from '@editorjs/nested-list';
+import Underline from '@editorjs/underline';
+import Strikethrough from '@sotaproject/strikethrough';
+
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { u8aToString } = require('@polkadot/util');
+//const Header = require('@editorjs/header');
+const Header = require("editorjs-header-with-alignment");
+const Table = require('editorjs-table');
+const Quote = require('@editorjs/quote');
+const Delimiter = require('@editorjs/delimiter');
+const Paragraph = require('editorjs-paragraph-with-alignment');
+const ColorPlugin = require('editorjs-text-color-plugin');
+const Checklist = require('@editorjs/checklist');
+
 
 
 
@@ -502,7 +516,20 @@ async function render_main(section){
   // title
   let c='<div class="row">';
   c=c+'<div class="col-8 pb-1" style="background-color:#D2E3FF" ><center><h2>Blockchain Documents Signing</h2></center></div>';
-  c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center><button type="button" class="btn btn-primary" id="createnew"><i class="bi bi-journal-plus"></i> Create New</button></div>';
+  //c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center><button type="button" class="btn btn-primary" id="createnew"><i class="bi bi-journal-plus"></i> Create New</button></center></div>';
+  c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center>';
+  c=c+'<div class="dropdown">';
+  c=c+'<button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+  c=c+'<i class="bi bi-journal-plus"></i> Create New';
+  c=c+'</button>';
+  c=c+'<ul class="dropdown-menu">';
+  c=c+'<li><a class="dropdown-item" href="#" id="blankdocument">Blank Document</a></li>';
+  c=c+'<li><a class="dropdown-item" href="#">Templates</a></li>';
+  c=c+'<li><a class="dropdown-item" href="#" id="createnew">Upload</a></li>';
+  c=c+'</ul>';
+  c=c+'</div>';
+  c=c+'</center></div>';
+
   c=c+'</div>';
   c=c+'<div id="msg"></div>';
   c=c+'<div class="row"><div class="col">';
@@ -558,6 +585,7 @@ async function render_main(section){
   c=c+'</table>';
   c=c+'</div></div>';
   document.getElementById("root").innerHTML =c;
+  console.log(c);
   // connect events for the tabs
   const drafts=document.getElementById("drafts");  
   drafts.addEventListener('click', render_drafts, false);    
@@ -571,6 +599,8 @@ async function render_main(section){
   rejected.addEventListener('click', render_rejected, false);    
   // connect the button to the rendering UI function
   document.getElementById("createnew").onclick = () => {render_file_upload();};
+  // connect the button to the editing of an empty document
+  document.getElementById("blankdocument").onclick = () => {render_blank_document();};
   // set active tab
   document.getElementById(section).className = "nav-link active";
   // connect events for the documents in the table
@@ -714,7 +744,117 @@ function render_file_upload(){
   //fileElem.addEventListener("change", handleFiles(fileElem.files));
 
 }
+//function to render the file blank document UI
+function render_blank_document(){
+  let c='<div class="row">';
+  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>New Document</h2></center>';
+  //button to save an
+  c=c+' <button class="btn btn-primary" id="docsave">Save</button>';
+  c=c+' <button class="btn btn-secondary" id="doccancel">Cancel</button>';
+  c=c+'</div>';
+  c=c+'</div>';
+  c=c+'<div class="row"><div class="col" id="msg"></div></div>';
+  c=c+'<div class="row"><div class="col">';
+  c=c+'<div id="editorjs">';
+  c=c+'</div>';
+  c=c+'</div>';
+  c=c+'</div>';
+  //console.log(c);
+  document.getElementById("root").innerHTML =c;
+  // set border around edtior
+  document.getElementById("editorjs").style.border = "solid #434545";
+  // configure editor
+  const editor =new EditorJS({
+    holder: 'editorjs',
+    autofocus: false,
+    placeholder: 'Click here to start writing....',
 
+    tools: {
+      header: {
+        class: Header,
+        shortcut: 'CMD+SHIFT+H',
+        config: {
+          placeholder: 'Enter a header',
+          levels: [1, 2, 3, 4, 5, 6],
+          defaultLevel: 3,
+          defaultAlignment: 'left'
+        }
+      },
+      table: {
+        class: Table,
+        inlineToolbar: true,
+        config: {
+          rows: 2,
+          cols: 3,
+        },
+      },
+      list: {
+        class: NestedList,
+        inlineToolbar: true,
+        config: {
+          defaultStyle: 'ordered'
+        },
+      },
+      quote: {
+        class: Quote,
+        inlineToolbar: true,
+        shortcut: 'CMD+SHIFT+Q',
+        config: {
+          quotePlaceholder: 'Enter a quote',
+          captionPlaceholder: 'Quote\'s author',
+        },
+      },
+      delimiter: Delimiter,
+      paragraph: {
+        class: Paragraph,
+        inlineToolbar: true,
+      },  
+      Color: {
+        class: ColorPlugin, 
+        config: {
+           colorCollections: ['#EC7878','#9C27B0','#673AB7','#3F51B5','#0070FF','#03A9F4','#00BCD4','#4CAF50','#8BC34A','#CDDC39', '#FFF'],
+           defaultColor: '#FF1300',
+           type: 'text', 
+           customPicker: true // add a button to allow selecting any colour  
+        }     
+      },
+      Marker: {
+        class: ColorPlugin, 
+        config: {
+           defaultColor: '#FFBF00',
+           type: 'marker',
+           icon: `<svg fill="#000000" height="200px" width="200px" version="1.1" id="Icons" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <path d="M17.6,6L6.9,16.7c-0.2,0.2-0.3,0.4-0.3,0.6L6,23.9c0,0.3,0.1,0.6,0.3,0.8C6.5,24.9,6.7,25,7,25c0,0,0.1,0,0.1,0l6.6-0.6 c0.2,0,0.5-0.1,0.6-0.3L25,13.4L17.6,6z"></path> <path d="M26.4,12l1.4-1.4c1.2-1.2,1.1-3.1-0.1-4.3l-3-3c-0.6-0.6-1.3-0.9-2.2-0.9c-0.8,0-1.6,0.3-2.2,0.9L19,4.6L26.4,12z"></path> </g> <g> <path d="M28,29H4c-0.6,0-1-0.4-1-1s0.4-1,1-1h24c0.6,0,1,0.4,1,1S28.6,29,28,29z"></path> </g> </g></svg>`
+          }       
+      },
+      checklist: {
+        class: Checklist,
+        inlineToolbar: true,
+      },
+      underline: Underline,
+      strikethrough: Strikethrough,
+    },
+    
+  });
+  docsave.addEventListener('click',documentsave);
+  docsave.param=editor;
+  doccancel.addEventListener('click',documentcancel);
+  /*editor.save().then((outputData) => {
+    console.log('Article data: ', outputData)
+  }).catch((error) => {
+    console.log('Saving failed: ', error)
+  });*/
+}
+//function to save document
+async function documentsave(evt){
+  let editor=evt.currentTarget.param;
+  let data= await editor.save();
+  console.log("data",data);
+}
+// cancel document editing
+async function documentcancel(){
+  render_main('drafts');
+  return;
+}
 // function to convert bytes to hex 
 function bytestohex(bytes) {
   var hexstring='', h;
