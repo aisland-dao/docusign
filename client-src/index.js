@@ -9,14 +9,10 @@ const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { u8aToString } = require('@polkadot/util');
 //const Header = require('@editorjs/header');
 const Header = require("editorjs-header-with-alignment");
-const Table = require('editorjs-table');
 const Quote = require('@editorjs/quote');
 const Delimiter = require('@editorjs/delimiter');
 const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
-const Checklist = require('@editorjs/checklist');
-
-
 
 
 let lastaccountidx=0;
@@ -82,12 +78,12 @@ document.getElementById("docdownload").onclick = () => {
   }
 }
 // actions on documents
-// document editing
-document.getElementById("docedit").onclick = () => {
+// document renaming
+document.getElementById("docrename").onclick = () => {
   if(currentDocumentId>0){
     let docdata=get_document_data(currentDocumentId);
     // set input field on description
-    let c='<input type="text" size="32" maxlength="64" id="docedit" value="'+docdata.description+'">';
+    let c='<input type="text" size="32" maxlength="64" id="docrename" value="'+docdata.description+'">';
     c=c+' <button type="button" class="btn btn-secondary" id="docwrite"><i class="bi bi-pencil-square"></i></button>'
     document.getElementById("D"+currentDocumentId).innerHTML = c;
     // temporary remove the click listener from the interested row
@@ -100,6 +96,36 @@ document.getElementById("docedit").onclick = () => {
     // add listener for Keypress on the description input
     const docwrite=document.getElementById("docwrite");
     docwrite.addEventListener('click',writeDocumentDescription);
+  }
+}
+// actions on documents
+// document editing (only for dcs files)
+document.getElementById("docedit").onclick = async () => {
+  if(currentDocumentId>0){
+    let docdata=get_document_data(currentDocumentId);
+    // check file name with extension .dcs for online editing
+    if(docdata.originalfilename.slice(-4)!='.dcs')
+      return;
+    // fetch document content from server
+    const params={
+      account: currentAccount.address,
+      token: currentToken,
+      documentid: currentDocumentId
+    }
+    let url = window.location.protocol + "//" + window.location.host+"/docdownload";
+    const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    //console.log("answerJSON: ", answerJSON);
+    actionsModal.hide();
+    if(answerJSON.answer=='KO'){
+      let msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+answerJSON.message;
+      msg=msg+"</center></div>";
+      document.getElementById("msg").innerHTML = msg;
+      return;
+    }
+    render_editor_document(answerJSON);
+    return;
   }
 }
 // actions on documents
@@ -387,7 +413,7 @@ document.getElementById("docsignsign").onclick = async () => {
 //function to write the document description
 async function writeDocumentDescription(){
   //get new description
-  const desc=document.getElementById("docedit").value;
+  const desc=document.getElementById("docrename").value;
   if(desc.length>1){
     //update the description
     const params ={
@@ -585,7 +611,7 @@ async function render_main(section){
   c=c+'</table>';
   c=c+'</div></div>';
   document.getElementById("root").innerHTML =c;
-  console.log(c);
+  //console.log(c);
   // connect events for the tabs
   const drafts=document.getElementById("drafts");  
   drafts.addEventListener('click', render_drafts, false);    
@@ -600,7 +626,7 @@ async function render_main(section){
   // connect the button to the rendering UI function
   document.getElementById("createnew").onclick = () => {render_file_upload();};
   // connect the button to the editing of an empty document
-  document.getElementById("blankdocument").onclick = () => {render_blank_document();};
+  document.getElementById("blankdocument").onclick = () => {render_editor_document();};
   // set active tab
   document.getElementById(section).className = "nav-link active";
   // connect events for the documents in the table
@@ -653,6 +679,7 @@ function render_rejected(){
 function uploadFile(file) {
   let url = window.location.protocol + "//" + window.location.host+"/upload";
   let formData = new FormData();
+  console.log("file:",file);
   formData.append('files', file);
   formData.append('account', currentAccount.address);
   formData.append('token', currentToken);
@@ -745,9 +772,14 @@ function render_file_upload(){
 
 }
 //function to render the file blank document UI
-function render_blank_document(){
+function render_editor_document(docdata){
   let c='<div class="row">';
-  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>New Document</h2></center>';
+  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>'
+  if(typeof docdata === 'undefined')
+    c=c+'New Document';
+  else
+    c=c+'Editing Document';
+  c=c+'</h2></center>';
   //button to save an
   c=c+' <button class="btn btn-primary" id="docsave">Save</button>';
   c=c+' <button class="btn btn-secondary" id="doccancel">Cancel</button>';
@@ -759,6 +791,11 @@ function render_blank_document(){
   c=c+'</div>';
   c=c+'</div>';
   c=c+'</div>';
+  // manage document data
+  let documentdata={};
+  if(typeof docdata !== 'undefined')
+    documentdata=docdata;
+  
   //console.log(c);
   document.getElementById("root").innerHTML =c;
   // set border around edtior
@@ -768,7 +805,7 @@ function render_blank_document(){
     holder: 'editorjs',
     autofocus: false,
     placeholder: 'Click here to start writing....',
-
+    data: documentdata,
     tools: {
       header: {
         class: Header,
@@ -779,14 +816,6 @@ function render_blank_document(){
           defaultLevel: 3,
           defaultAlignment: 'left'
         }
-      },
-      table: {
-        class: Table,
-        inlineToolbar: true,
-        config: {
-          rows: 2,
-          cols: 3,
-        },
       },
       list: {
         class: NestedList,
@@ -826,10 +855,6 @@ function render_blank_document(){
            icon: `<svg fill="#000000" height="200px" width="200px" version="1.1" id="Icons" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <path d="M17.6,6L6.9,16.7c-0.2,0.2-0.3,0.4-0.3,0.6L6,23.9c0,0.3,0.1,0.6,0.3,0.8C6.5,24.9,6.7,25,7,25c0,0,0.1,0,0.1,0l6.6-0.6 c0.2,0,0.5-0.1,0.6-0.3L25,13.4L17.6,6z"></path> <path d="M26.4,12l1.4-1.4c1.2-1.2,1.1-3.1-0.1-4.3l-3-3c-0.6-0.6-1.3-0.9-2.2-0.9c-0.8,0-1.6,0.3-2.2,0.9L19,4.6L26.4,12z"></path> </g> <g> <path d="M28,29H4c-0.6,0-1-0.4-1-1s0.4-1,1-1h24c0.6,0,1,0.4,1,1S28.6,29,28,29z"></path> </g> </g></svg>`
           }       
       },
-      checklist: {
-        class: Checklist,
-        inlineToolbar: true,
-      },
       underline: Underline,
       strikethrough: Strikethrough,
     },
@@ -838,6 +863,8 @@ function render_blank_document(){
   docsave.addEventListener('click',documentsave);
   docsave.param=editor;
   doccancel.addEventListener('click',documentcancel);
+  doccancel.param=editor;
+
   /*editor.save().then((outputData) => {
     console.log('Article data: ', outputData)
   }).catch((error) => {
@@ -846,14 +873,68 @@ function render_blank_document(){
 }
 //function to save document
 async function documentsave(evt){
-  let editor=evt.currentTarget.param;
+  const editor=evt.currentTarget.param;
   let data= await editor.save();
-  console.log("data",data);
+  // in case of empyt doc leave without saving
+  if(typeof data.blocks[0] === 'undefined'){
+    render_main('drafts');
+    return;
+  }
+  // require a description for the file
+  let filename=prompt("Please insert a description for this document:","Draft");
+  if(filename==null){
+    return;
+  }
+  filename=filename+".dcs";
+  data=JSON.stringify(data);
+  //console.log("data",data);
+  let url = window.location.protocol + "//" + window.location.host+"/upload";
+  let formData = new FormData();
+  const content = data;
+  const blob = new Blob([content], { type: "text/json" });
+  console.log("blob",blob);
+  //formData.append("webmasterfile.dcs", blob);
+  formData.append('files', blob,filename);
+  formData.append('account', currentAccount.address);
+  formData.append('token', currentToken);
+  fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+  .then(async (answer) => { 
+    let answerJSON = await  answer.json();
+    console.log("Upload has been completed",answerJSON);
+    let msg='<div class="alert alert-success" role="alert"><center>';
+    msg=msg+'Documents have been uploaded successfully';
+    msg=msg+"</center></div>"; 
+    document.getElementById("msg").innerHTML =msg;
+    render_main('drafts');
+    return;
+  })
+  .catch((e) => { 
+    console.log("error during the upload",e)
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Error during the upload, please retry later...."
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+   });
+
 }
 // cancel document editing
-async function documentcancel(){
-  render_main('drafts');
-  return;
+async function documentcancel(evt){
+  let editor=evt.currentTarget.param;
+  let data= await editor.save();
+  if(typeof data.blocks[0] !== 'undefined'){
+      const answer=confirm("Do you want to leave without saving?");
+      if(answer==true){
+        render_main('drafts');
+        return;
+      }
+  }
+  else {
+    render_main('drafts');
+    return;
+  }
 }
 // function to convert bytes to hex 
 function bytestohex(bytes) {
