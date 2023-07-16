@@ -47,6 +47,13 @@ document.getElementById("connect").onclick = () => {
 document.getElementById("logout").onclick = () => {
   window.sessionStorage.clear();
 };
+// jump to templates
+document.getElementById("menutemplates").onclick = () => {
+  render_templates();
+  // return false to avoid following the href
+  return(false);
+};
+
 // actions on documents
 // document view
 document.getElementById("docview").onclick = () => {
@@ -550,7 +557,7 @@ async function render_main(section){
   c=c+'</button>';
   c=c+'<ul class="dropdown-menu">';
   c=c+'<li><a class="dropdown-item" href="#" id="blankdocument">Blank Document</a></li>';
-  c=c+'<li><a class="dropdown-item" href="#">Templates</a></li>';
+  c=c+'<li><a class="dropdown-item" href="#" id="templates">Templates</a></li>';
   c=c+'<li><a class="dropdown-item" href="#" id="createnew">Upload</a></li>';
   c=c+'</ul>';
   c=c+'</div>';
@@ -627,6 +634,8 @@ async function render_main(section){
   document.getElementById("createnew").onclick = () => {render_file_upload();};
   // connect the button to the editing of an empty document
   document.getElementById("blankdocument").onclick = () => {render_editor_document();};
+  // connect the button to the templates management
+  document.getElementById("templates").onclick = () => {render_templates();};
   // set active tab
   document.getElementById(section).className = "nav-link active";
   // connect events for the documents in the table
@@ -771,7 +780,7 @@ function render_file_upload(){
   //fileElem.addEventListener("change", handleFiles(fileElem.files));
 
 }
-//function to render the file blank document UI
+//function to render a document UI
 function render_editor_document(docdata){
   let c='<div class="row">';
   c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>'
@@ -796,7 +805,7 @@ function render_editor_document(docdata){
   if(typeof docdata !== 'undefined')
     documentdata=docdata;
   
-  //console.log(c);
+  console.log("documentdata",documentdata);
   document.getElementById("root").innerHTML =c;
   // set border around edtior
   document.getElementById("editorjs").style.border = "solid #434545";
@@ -864,12 +873,6 @@ function render_editor_document(docdata){
   docsave.param=editor;
   doccancel.addEventListener('click',documentcancel);
   doccancel.param=editor;
-
-  /*editor.save().then((outputData) => {
-    console.log('Article data: ', outputData)
-  }).catch((error) => {
-    console.log('Saving failed: ', error)
-  });*/
 }
 //function to save document
 async function documentsave(evt){
@@ -955,4 +958,127 @@ function getCookie(name){
       return cookie[1]
   }
   return false
+}
+//function to render templates management
+async function render_templates(tagfilterv){
+  // fetch tags
+  let params={
+    account: currentAccount.address,
+    token: currentToken,
+  }
+  let url = window.location.protocol + "//" + window.location.host+"/templatestags";
+  let response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+  let tags = await  response.json();
+  let c='<div class="row">';
+  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>'
+  c=c+'Templates';
+  c=c+'</h2></center></div></div>';
+  c=c+'<div class="row"><div class="col" id="msg"></div></div>';
+  // tags
+  c=c+'<div class="row"><div class="col" id="tags">'
+  c=c+'<hr>&nbsp;&nbsp; Filter by:&nbsp;';
+  let x=tags.length;
+  let i=0;
+  for(i=0;i<x;i++){
+    c=c+'<span class="tag-cloud" id="tag'+i+'">'+tags[i]+'</span>&nbsp;'
+  }
+  c=c+'<hr></div></div>';
+  // fetch templates
+  params={
+    account: currentAccount.address,
+    token: currentToken,
+  }
+  url = window.location.protocol + "//" + window.location.host+"/templates";
+  response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+  let templates = await  response.json();
+  console.log(templates);
+  // templates' listbox
+  c=c+'<div class="row"><div class="col-1"> </div>'
+  c=c+'<div class="col-10" id="templatelist">'
+  c=c+'<select class="form-select" size="10" aria-label="size 10 select templates" id="templateslist">';
+  for(i=0;i<x;i++){
+    if(typeof tagfilterv==='undefined')
+      c=c+'<option value="'+templates[i].id+'" >'+templates[i].description+'</option>';
+    else{
+      if(templates[i].tags.search(tagfilterv)> -1)
+        c=c+'<option value="'+templates[i].id+'" >'+templates[i].description+'</option>';
+    }
+  }
+  c=c+'</select>';
+  c=c+'</div>';
+  c=c+'<div class="col-1"> </div> </div>';
+  //buttons to clone/cancel
+  c=c+'<div class="row"><div class="col">';
+  
+  c=c+'<center><br><button class="btn btn-primary" id="templateclone">Clone</button> ';
+  c=c+' <button class="btn btn-secondary" id="templatecancel">Cancel</button></center><br>';
+  c=c+'</div>';
+  c=c+'</div>';
+  
+  c=c+'<div class="row"><div class="col">';
+  c=c+'<div id="templateview">';
+  c=c+'</div>';
+  c=c+'</div>';
+  c=c+'</div>';
+  document.getElementById("root").innerHTML =c;
+  templateclone.addEventListener('click',templateClone);
+  //docsave.param=editor;
+  templatecancel.addEventListener('click',templateCancel);
+  templateslist.addEventListener('click',showtemplate);
+  // set listening for tags
+  x=tags.length;
+  for(i=0;i<x;i++){
+    const tagname='tag'+i;
+    const v=tagname+".addEventListener('click',tagfilter);"+tagname+'.param="'+tags[i]+'";';
+    console.log(v);
+    eval(v);
+  }
+}
+// function to clone/edit the template
+async function templateClone(){
+  // read select id from
+  let id=document.getElementById("templateslist").value;
+  console.log("id",id);
+  // fetch docdata of the template
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+    documentid: id,
+  }
+  const url = window.location.protocol + "//" + window.location.host+"/templatedata";
+  let response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+  console.log("response",response);
+  let data = await  response.json();
+  console.log("data",data);
+  render_editor_document(data);
+  return;
+}
+// function to return to drafts from template cancellation
+function templateCancel(){
+  render_main('drafts');
+  return;
+}
+// function to render the content of a template
+async function showtemplate(){
+  // read select id from
+  let id=document.getElementById("templateslist").value;
+  // fetch html of the template
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+    documentid: id,
+  }
+  const url = window.location.protocol + "//" + window.location.host+"/templateview";
+  let response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+  console.log("response",response);
+  let html = await  response.text();
+  console.log("html",html);
+  document.getElementById("templateview").innerHTML =html;
+  document.getElementById("templateview").style.border = "solid #434545";
+}
+//function to filter thw template by tag
+function tagfilter(evt){
+  console.log("tagfilter",evt.currentTarget.param);
+  render_templates(evt.currentTarget.param);
+  return;
 }
