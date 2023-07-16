@@ -343,19 +343,19 @@ async function mainloop(){
           }
         // check .dcs files
         const originalfilename=rows[0].originalfilename;
-        console.log("originalfilename",originalfilename);
+        //console.log("originalfilename",originalfilename);
         if(originalfilename.slice(-4)=='.dcs'){
             // convert the file to html for rendering
             // Initialize the parser
-            console.log("special processing for .dcs");
+            //console.log("special processing for .dcs");
             const edjsParser = edjsHTML();
             const fileNameDcs='upload/'+rows[0].urlfile;
-            console.log("fileNameDcs:",fileNameDcs);
+            //console.log("fileNameDcs:",fileNameDcs);
             const contentFile=fs.readFileSync(fileNameDcs);
             const contentFileObj=JSON.parse(contentFile.toString())
-            console.log("contentFileObj",contentFileObj);
+            //console.log("contentFileObj",contentFileObj);
             const html = edjsParser.parse(contentFileObj);
-            console.log("html",html);
+            //console.log("html",html);
             let optionsDcs = {
                 headers: {
                   'Content-Type': 'text/html',
@@ -373,9 +373,9 @@ async function mainloop(){
             }
             res.send(c,optionsDcs, function (err) {
                 if (err) {
-                    console.log(err);
+                    console.log('ERROR:'+err);
                 } else {
-                    console.log('File Sent:', fileName);
+                    console.log('INFO: File Sent:', fileName);
                     return;
                 }
             });
@@ -391,6 +391,133 @@ async function mainloop(){
                 return;
             }
         });
+    });
+    // template view
+    app.get('/templateview', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        const documentid=req.query.documentid;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request docview");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request docview");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check documentid
+        if(typeof documentid ==='undefined'){
+            console.log("ERROR: Missing documentid in request docview");
+            const answer='{"answer":"KO","message":"documentid is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            return;
+        }
+        // make query for templates (sql injection is managed)
+        const [rows, fields] = await connection.execute("select * from templates where id=?",[documentid]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"documentid not found"}';
+            res.send(answer);
+            return;
+        }
+        const edjsParser = edjsHTML();
+        const contentFileObj=JSON.parse(rows[0].content)    
+        const html = edjsParser.parse(contentFileObj);
+        console.log("html",html);
+        let options = {
+            headers: {
+                'Content-Type': 'text/html',
+                'x-timestamp': Date.now(),
+                'x-sent': true,
+            }
+        }
+        let c='';
+        let i=0;
+        const x=html.length;
+        for (i=0;i<x;i++){
+            c=c+html[i];
+        }
+        console.log("c",c);
+        res.send(c,options, function (err) {
+            if (err) {
+                console.log('ERROR:'+err);
+            } else {
+                console.log('INFO: File Sent:', fileName);
+                return;
+            }
+        });
+        return;
+    });
+    // template data
+    app.get('/templatedata', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        const documentid=req.query.documentid;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request docview");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request docview");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check documentid
+        if(typeof documentid ==='undefined'){
+            console.log("ERROR: Missing documentid in request docview");
+            const answer='{"answer":"KO","message":"documentid is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            return;
+        }
+        // make query for templates (sql injection is managed)
+        const [rows, fields] = await connection.execute("select * from templates where id=?",[documentid]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"documentid not found"}';
+            res.send(answer);
+            return;
+        }        
+        let options = {
+            headers: {
+                'Content-Type': 'text/json',
+                'x-timestamp': Date.now(),
+                'x-sent': true,
+            }
+        }
+        res.send(rows[0].content,options, function (err) {
+            if (err) {
+                console.log('ERROR:'+err);
+            } else {
+                console.log('INFO: File Sent:', fileName);
+                return;
+            }
+        });
+        return;
     });
     // document delete
     app.get('/docdelete', async function (req, res) {
@@ -596,6 +723,39 @@ async function mainloop(){
         res.send(JSON.stringify(rows));
         return;
     });
+    // function to return the documents in approved status
+    app.get('/templatestags', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request documentsrejected");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request documentsrejected");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            return;
+        }
+        // make query to get templates 
+        const [rows, fields] = await connection.execute("select tags from templates");
+        // send the back the records in json format
+        const tags=getUniqueTags(rows);
+        res.send(JSON.stringify(tags));
+        return;
+    });
     // function to update the document description
     app.get('/updatedocumentdescription', async function (req, res) {
         // parameters required
@@ -710,7 +870,7 @@ async function mainloop(){
         res.send(answer);
         return;
     });
-    // document view
+    // document download
     app.get('/docdownload', async function (req, res) {
         // parameters required
         const token=req.query.token;
@@ -870,4 +1030,22 @@ async function update_status_documents_waiting(account){
     }
     return;
 }
+function getUniqueTags(rows) {
+    // Join all tags into a single string
+    let i=0;
+    let x=rows.length;
+    let allTags='';
+    for(i=0;i<x;i++) {
+        if(i>0)
+            allTags=allTags+',';
+        allTags=allTags+rows[i].tags;
+    }
+    // Split the string into an array of individual tags
+    const individualTags = allTags.split(',');
+    // Create a Set to eliminate duplicate tags
+    const uniqueTagsSet = new Set(individualTags);
+    // Convert the Set back to an array
+    let uniqueTagsArray = Array.from(uniqueTagsSet);
+    return uniqueTagsArray.sort();
+  }
   
