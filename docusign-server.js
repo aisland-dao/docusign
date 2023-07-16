@@ -10,6 +10,7 @@ let util=require("@polkadot/util");
 const multer = require("multer");
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const upload = multer({ dest: "upload/" });
+const edjsHTML = require("editorjs-html");
 let connection;
 let api;
 const provider = new WsProvider('wss://testnet.aisland.io');
@@ -328,7 +329,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        // configure the sendig
+        // configure the sending
         let options = {
             root: path.join(__dirname, 'upload'),
             dotfiles: 'deny',
@@ -340,7 +341,47 @@ async function mainloop(){
               'x-sent': true,
             }
           }
-        //send the file
+        // check .dcs files
+        const originalfilename=rows[0].originalfilename;
+        console.log("originalfilename",originalfilename);
+        if(originalfilename.slice(-4)=='.dcs'){
+            // convert the file to html for rendering
+            // Initialize the parser
+            console.log("special processing for .dcs");
+            const edjsParser = edjsHTML();
+            const fileNameDcs='upload/'+rows[0].urlfile;
+            console.log("fileNameDcs:",fileNameDcs);
+            const contentFile=fs.readFileSync(fileNameDcs);
+            const contentFileObj=JSON.parse(contentFile.toString())
+            console.log("contentFileObj",contentFileObj);
+            const html = edjsParser.parse(contentFileObj);
+            console.log("html",html);
+            let optionsDcs = {
+                headers: {
+                  'Content-Type': 'text/html',
+                  'Content-Disposition': 'inline; filename='+rows[0].originalfilename,
+                  'Content-Length':rows[0].size,
+                  'x-timestamp': Date.now(),
+                  'x-sent': true,
+                }
+            }
+            let c='';
+            let i=0;
+            const x=html.length;
+            for (i=0;i<x;i++){
+                c=c+html[i];
+            }
+            res.send(c,optionsDcs, function (err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log('File Sent:', fileName);
+                    return;
+                }
+            });
+            return;
+        }
+        //send the any other type of file
         let fileName = rows[0].urlfile;
         res.sendFile(fileName, options, function (err) {
             if (err) {
@@ -520,6 +561,39 @@ async function mainloop(){
         const answer='{"answer":"OK","signaturetoken":"'+signaturetoken+'"}';
 
         res.send(answer);
+        return;
+    });
+    // function to return the documents in approved status
+    app.get('/templates', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request documentsrejected");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request documentsrejected");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            return;
+        }
+        // make query to get templates 
+        const [rows, fields] = await connection.execute("select * from templates order by description");
+        // send the back the records in json format
+        console.log("templates:",JSON.stringify(rows));
+        res.send(JSON.stringify(rows));
         return;
     });
     // function to update the document description
