@@ -617,6 +617,51 @@ async function render_main(section){
   }
   c=c+'</table>';
   c=c+'</div></div>';
+  // show cards option if empty
+  if(documentsJSON.length==0){
+    c=c+'<div class="row  justify-content-center align-items-center" style="text-align: center">';
+    c=c+'<div class="col-12"><h4>*** No documents found ***</h4><hr>';
+    c=c+'</div></div>';
+    c=c+'<div class="row  justify-content-center align-items-center" style="text-align: center">';
+    c=c+'<div class="col-3">';
+    c=c+'<div class="card" style="width: 15rem">';
+    //c=c+'<div class="card">';
+    c=c+'<img src="img/blank-document.svg" class="card-img-top" alt="Blank Document" height="50" style="Padding:2px">';
+    c=c+'<div class="card-body">';
+    c=c+'<h5 class="card-title">Blank Document</h5>';
+    c=c+'<p class="card-text">You can create a blank document and use the inline block editor to create your agreement. The system keep a version of the different drafts till the signature.</p>';
+    c=c+'<button type="button" class="btn btn-primary" id="create-blank">Create</button>';
+    c=c+'</div>';
+    c=c+'</div>';
+    c=c+'<p></p>';
+    c=c+'</div>';
+    c=c+'<div class="col-3">';
+    c=c+'<div class="card" style="width: 15rem;">';
+    //c=c+'<div class="card">';
+    c=c+'<img src="img/templates-document.svg" class="card-img-top" alt="Templates" height="50" style="Padding:2px">';
+    c=c+'<div class="card-body">';
+    c=c+'<h5 class="card-title">Templates</h5>';
+    c=c+'<p class="card-text">You can create a document from one of the public template, create yours private template and reuse and even make a public one an be rewarded for your contribution.</p>';
+    c=c+'<button type="button" class="btn btn-primary" id="select-template">Select</button>';
+    c=c+'</div>';
+    c=c+'</div>';
+    c=c+'<p></p>';
+    c=c+'</div>';
+    c=c+'<div class="col-3">';
+    c=c+'<div class="card" style="width: 15rem;">';
+    //c=c+'<div class="card">';
+    c=c+'<img src="img/upload-document.svg" class="card-img-top" alt="Upload"  height="50" style="Padding:2px">';
+    c=c+'<div class="card-body">';
+    c=c+'<h5 class="card-title">Upload</h5>';
+    c=c+'<p class="card-text">You can upload the document to be signed, the supported format are: pdf, png, jpeg, doc, docx (Microsoft Word),odf,odc (Open Office).Preview is supported.</p>';
+    c=c+'<button type="button" class="btn btn-primary" id="upload-document">Upload</button>';
+    c=c+'</div>';
+    c=c+'</div>';
+    c=c+'<p></p>';
+    c=c+'</div>';
+    c=c+'</div>';
+  }
+  
   document.getElementById("root").innerHTML =c;
   //console.log(c);
   // connect events for the tabs
@@ -642,6 +687,14 @@ async function render_main(section){
   for(let i=0;i<documentsJSON.length;i++) {
     const r=document.getElementById("r"+documentsJSON[i].id);
     r.addEventListener('click',documentactions,{ capture: true });
+  }
+  // connect events for cards
+  if(documentsJSON.length==0){
+    document.getElementById("upload-document").onclick = () => {render_file_upload();};
+    // connect the button to the editing of an empty document
+    document.getElementById("create-blank").onclick = () => {render_editor_document();};
+    // connect the button to the templates management
+    document.getElementById("select-template").onclick = () => {render_templates();};
   }
   // return false to avoid that click on href are executed
   return(false); // to avoid that click on href are executed
