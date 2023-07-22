@@ -461,7 +461,8 @@ async function connectWallet(){
       //invite the user to install a wallet
       let msg='<div class="alert alert-warning" role="alert"><center>';
       msg=msg+'There is no wallet extension in your browser. Please install the <a href="https://polkadot.js.org/extension/" target="_blank">Polkadot Wallet Extension</a>';
-      msg=msg+' or you may have refused the wallet connection earlier. In such case, please close and reopen the browser.';
+      msg=msg+' or <a href="https://www.subwallet.app" target="_blank">Subwallet</a>.';
+
       msg=msg+"</center></div>";
       document.getElementById("msg").innerHTML = msg;
       return;
