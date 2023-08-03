@@ -1,10 +1,10 @@
-# Docusign 
+# Docsig 
 A Dapp to sign and exchange documents notarized on the blockchain.
 It's based on [Substrate framework](https:/substrate.dev) for the blockchain and
 [Polkadot.js](https://polkadot.js.org/extension/) for the wallet extension.  
   
 A live demo is available at:  
-[https://docusign.aisland.io](https://docusign.aisland.io)  
+[https://docsig.aisland.io](https://docsig.aisland.io)  
 The demo works on the testnet of [Aisland blockchain](https://aisland.io).  
   
 You can use the faucet available at:  
@@ -18,23 +18,23 @@ You can use the faucet available at:
 
 - install Nodejs following the instructions on the official website  
 - install Mariadb  
-- create a database named: docusign with:  
+- create a database named: docsig with:  
 ```bash
 mysql
-create database docusign;
+create database docsig;
 exit;
 ```
 import the database schema with:  
 ```bash
-mysql docusign < create_database_tables.sql
+mysql docsig < create_database_tables.sql
 ```
 create a a database user:  
 ```
-CREATE USER 'docusign'@'localhost' IDENTIFIED BY 'your_passord';
-GRANT ALL PRIVILEGES ON docusign.* TO 'docusign'@'localhost';
+CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_passord';
+GRANT ALL PRIVILEGES ON docsig.* TO 'docsig'@'localhost';
 FLUSH PRIVILEGES;
 ```
-edit the file docusign-server.sh and customize with your password.  
+edit the file docsig-server.sh and customize with your password.  
 
 ```bash
 install the dependencies for nodejs:  
@@ -44,7 +44,7 @@ npm install
 
 ## Run
 ```bash
-./docusign-server.sh
+./docsig-server.sh
 ```
 you will be able to reache the user interface browsing:  
 http://localhost:3000  
