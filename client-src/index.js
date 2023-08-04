@@ -37,7 +37,8 @@ if(sessionAccount != null){
   currentAccount=JSON.parse(sessionAccount);
   render_main('drafts');
 }
-
+// enable web3
+enableWeb3()
 
 // connect wallet button
 document.getElementById("connect").onclick = () => {
@@ -331,8 +332,9 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+`You are connected to ${chain} using ${nodeName} v${nodeVersion}`;
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
+    console.log("currentAccount",currentAccount);
     const injector = await web3FromSource(currentAccount.meta.source);
-    console.log(docdata);
+    console.log("docdata",docdata);
     if(currentAccount.address==docdata.account){
         //check for document already signed
         const hash = await api.query.docuSign.documents(docdata.account,currentDocumentId);
@@ -546,7 +548,17 @@ async function connectWallet(){
 // function to render the main user interface after sign-in
 async function render_main(section){
   // read signature token
-  signaturetoken=getCookie(signaturetoken);
+  signaturetoken=getCookie('signaturetoken');
+  // force the waiting the first time
+  let signaturetokenfirstview=getCookie('signaturetokenfirstview');
+  console.log("signaturetoken",signaturetoken);
+  console.log("signaturetokenfirstview",signaturetokenfirstview);
+  if(signaturetokenfirstview==signaturetoken && signaturetoken.length>0){
+    console.log("forcing waiting session");
+    section='waiting';
+    //clear the cookie used for the first view
+    document.cookie = "signaturetokenfirstview=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  }
   // title
   let c='<div class="row">';
   c=c+'<div class="col-8 pb-1" style="background-color:#D2E3FF" ><center><h2>Blockchain Documents Signing</h2></center></div>';
@@ -1005,13 +1017,13 @@ function bytestohex(bytes) {
 }
 // function to read cookie value
 function getCookie(name){
-  var pattern = RegExp(name + "=.[^;]*")
-  var matched = document.cookie.match(pattern)
+  var pattern = RegExp(name + "=.[^;]*");
+  var matched = document.cookie.match(pattern);
   if(matched){
-      var cookie = matched[0].split('=')
-      return cookie[1]
+      var cookie = matched[0].split('=');
+      return cookie[1];
   }
-  return false
+  return '';
 }
 //function to render templates management
 async function render_templates(tagfilterv){
@@ -1135,4 +1147,19 @@ function tagfilter(evt){
   console.log("tagfilter",evt.currentTarget.param);
   render_templates(evt.currentTarget.param);
   return;
+}
+//function to enable web3
+async function enableWeb3() {
+    let allInjected = await web3Enable('docusign.aisland.io')
+    //console.log("allInjected",allInjected);
+    if(allInjected.length==0){
+      //invite the user to install a wallet
+      let msg='<div class="alert alert-warning" role="alert"><center>';
+      msg=msg+'There is no wallet extension in your browser. Please install the <a href="https://polkadot.js.org/extension/" target="_blank">Polkadot Wallet Extension</a>';
+      msg=msg+' or <a href="https://www.subwallet.app" target="_blank">Subwallet</a>.';
+
+      msg=msg+"</center></div>";
+      document.getElementById("msg").innerHTML = msg;
+      return;
+    }
 }
