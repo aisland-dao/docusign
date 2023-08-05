@@ -8,6 +8,7 @@
     <script src="/js/bootstrap.bundle.min.js"></script>
     <!-- <script src="/js/editorjs.js"></script> -->
     <script type="module" src="js/bundle.js"></script> 
+    <script src="/js/sodium.js" async></script>
     <link rel="stylesheet" href="/css/bootstrap.min.css">   
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/docsig.css">   
@@ -153,4 +154,13 @@
       </div>
     </div>
   </div>
+  <script>
+    // test sodium loading
+    window.sodium = {
+        onload: function (sodium) {
+            let h = sodium.crypto_generichash(64, sodium.from_string('test'));
+            console.log("sodium: ",sodium.to_hex(h));
+        }
+    };
+</script>
 </html>

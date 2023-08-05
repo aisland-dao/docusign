@@ -13,7 +13,11 @@ const Quote = require('@editorjs/quote');
 const Delimiter = require('@editorjs/delimiter');
 const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
-
+//for encryption/decryption
+//const _sodium =require('../html/js/sodium.js');
+const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+//const crypto = require('crypto').webcrypto;
+const { unpack, pack } = require('msgpackr');
 
 let lastaccountidx=0;
 let currentAccount='';
@@ -1163,3 +1167,82 @@ async function enableWeb3() {
       return;
     }
 }
+// function to encrypt a msg by public key and return an encrypted object
+// we compute a shared key of 32 bytes between the sender and recipient (Diffie-Hellman)
+// we use it to encrypt a random key of 64 bytes
+// we make a first encryption by chacha20 with the first 32 bytes of the random key
+// we make a second encryptuon by AES-256-GCM witht the second 32 bytes of the random key
+// the random nonces are generated internally
+// the function return an object with all the nonces used, the public keys involved and the encrypted msg
+// the object can be serialised to store it on blockchain
+async function encrypt_stream(msg,senderprivatekey,senderpublickey,recipientpublickey){
+  //await _sodium.ready;
+  //const sodium = _sodium;
+  // generates random nonce
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  // generates random secret key 64 bytes (it will be used to encrypt the stream)
+  const secretkey=sodium.randombytes_buf(64);
+  //console.log("secretkey",secretkey);
+  // encrypts by x25519
+  const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickey,senderprivatekey);
+  // use the first 32 bytes of the secret key to encrypt the msg by chacha algorithm
+  const secretkeychacha=secretkey.slice(0,32);
+  // generate a nonce for chacha20 (24 bytes)
+  const noncechacha = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+  const encmsgchacha=sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(msg,null,null,noncechacha,secretkeychacha);
+  // encrypt by AES-256 gcm
+  //generate nonce for aes
+  const nonceaes=sodium.randombytes_buf(12);
+  // get secret key for Aes
+  const secretkeyaes=secretkey.slice(32);
+  // set the algorithm
+  const alg = { name: 'AES-GCM', iv: nonceaes };
+  // import the key
+  const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
+  // encrypt the output of chacha
+  const encmsgaesb=  await window.crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
+  const encmsgaes=new Uint8Array(encmsgaesb);
+  let result={
+    nonce25519: nonce,
+    encsecret25519: encsecretkey,
+    senderpublickey: senderpublickey,
+    recipientpublickey: recipientpublickey,
+    noncechacha: noncechacha,
+    nonceaes: nonceaes,
+    encmsg: encmsgaes
+    //encmsgchacha: encmsgchacha,
+    //nonceaes: nonceaes,
+    //encmsgaes: encmsgaes
+  };
+  // return encrypted object serialized with msgpackr
+  return(pack(result));
+}
+// function to decrypt a msg and return an Uin8array with the clear message (private/public keys belongs to the party wishing to decrypt)
+async function decrypt_stream(encmsgb,privatekey,publickey){
+    // deserialize the encrypted object
+    const encmsg=unpack(encmsgb);
+    // wait for sodium available
+    //await _sodium.ready;
+    //const sodium = _sodium;
+    // select the public key of the counter part
+    let pk='';
+    if( encmsg.senderpublickey==publickey)
+        pk=encmsg.recipientpublickey
+    else
+        pk=encmsg.senderpublickey
+    // decrypt the secret key from the public key encryption
+    let secretkey=sodium.crypto_box_open_easy(encmsg.encsecret25519,encmsg.nonce25519,pk,privatekey);
+    let secretkeychacha=secretkey.slice(0,32);
+    let secretkeyaes=secretkey.slice(32);
+    // decrypt first layer by AES-GCM
+    const alg = { name: 'AES-GCM', iv: encmsg.nonceaes };
+    // import the key
+    const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
+    //decryption  by AESGCM
+    const encmsgchachab=  await window.crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
+    const encmsgchacha = new Uint8Array(encmsgchachab);
+    // decryption second layer by Chacha20
+    let result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
+    return(result);
+  }
+ 
