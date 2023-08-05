@@ -14,9 +14,7 @@ const Delimiter = require('@editorjs/delimiter');
 const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
 //for encryption/decryption
-//const _sodium =require('../html/js/sodium.js');
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
-//const crypto = require('crypto').webcrypto;
 const { unpack, pack } = require('msgpackr');
 
 let lastaccountidx=0;
