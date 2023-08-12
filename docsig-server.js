@@ -1266,10 +1266,11 @@ async function mainloop(){
         connection.close();
         return;
     });
+    // manage signature upload
+    app.post("/uploadsignature", upload.array("files"), uploadsignature);
+    // manage initials upload
+    app.post("/uploadinitials", upload.array("files"), uploadinitials);
     
-
-
-
     // manage upload of files
     app.post("/upload", upload.array("files"), uploadFiles);
 
@@ -1427,5 +1428,111 @@ async function get_font_filename(folderPath){
         }
     }
     return('');
+}
+// function to manage the signature upload
+async function uploadsignature(req, res) {
+    console.log("req.body",req.body);
+    //console.log("req.files",req.files);
+    // check parameters
+    let account=req.body.account;
+    let token=req.body.token;
+    
+    if(typeof account === 'undefined'){
+        res.send('{"answer":"KO","message":"account is mandatory" }');
+        console.log('{"answer":"KO","message":"account is mandatory" }');
+        return;
+    }
+    if(typeof token === 'undefined'){
+        res.send('{"answer":"KO","message":"token is mandatory" }');
+        console.log('{"answer":"KO","message":"token is mandatory" }');
+        return;
+    }
+    connection = await mysql.createConnection({
+        host     : DB_HOST,
+        user     : DB_USER,
+        password : DB_PWD,
+        database : DB_NAME,
+        multipleStatements : true
+    });
+    // check validity of the security token for the requested account
+    const isValidToken= await check_token_validity(token,account,connection);
+    if(!isValidToken){
+        const answer='{"answer":"KO","message":"Token is not valid"}';
+        res.send(answer);
+        console.log(answer);
+        connection.close();
+        return;
+    }
+    // store the file in temporary location for showing and later saving
+    let i=0
+    //for(let i=0;i<req.files.length;i++) 
+    //{
+    console.log("req.files[i].orginalname",req.files[i].originalname);
+    console.log("req.files[i].filename",req.files[i].filename);
+    //computer hash
+    const fileBuffer = fs.readFileSync('upload/'+req.files[i].filename);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    const hash = hashSum.digest('hex');
+    console.log("hash",hash);
+    await connection.execute("insert into standardsignaturestmp set account=?,type='S',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+    //}
+    res.send('{"answer":"OK","message":"File has been uploaded" }');
+    console.log("closing database");
+    connection.close();
+    return;
+}
+// function to manage the initials upload
+async function uploadinitials(req, res) {
+    console.log("req.body",req.body);
+    //console.log("req.files",req.files);
+    // check parameters
+    let account=req.body.account;
+    let token=req.body.token;
+    
+    if(typeof account === 'undefined'){
+        res.send('{"answer":"KO","message":"account is mandatory" }');
+        console.log('{"answer":"KO","message":"account is mandatory" }');
+        return;
+    }
+    if(typeof token === 'undefined'){
+        res.send('{"answer":"KO","message":"token is mandatory" }');
+        console.log('{"answer":"KO","message":"token is mandatory" }');
+        return;
+    }
+    connection = await mysql.createConnection({
+        host     : DB_HOST,
+        user     : DB_USER,
+        password : DB_PWD,
+        database : DB_NAME,
+        multipleStatements : true
+    });
+    // check validity of the security token for the requested account
+    const isValidToken= await check_token_validity(token,account,connection);
+    if(!isValidToken){
+        const answer='{"answer":"KO","message":"Token is not valid"}';
+        res.send(answer);
+        console.log(answer);
+        connection.close();
+        return;
+    }
+    // store the file in temporary location for showing and later saving
+    let i=0
+    //for(let i=0;i<req.files.length;i++) 
+    //{
+    console.log("req.files[i].orginalname",req.files[i].originalname);
+    console.log("req.files[i].filename",req.files[i].filename);
+    //computer hash
+    const fileBuffer = fs.readFileSync('upload/'+req.files[i].filename);
+    const hashSum = crypto.createHash('sha256');
+    hashSum.update(fileBuffer);
+    const hash = hashSum.digest('hex');
+    console.log("hash",hash);
+    await connection.execute("insert into standardsignaturestmp set account=?,type='I',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+    //}
+    res.send('{"answer":"OK","message":"File has been uploaded" }');
+    console.log("closing database");
+    connection.close();
+    return;
 }
 

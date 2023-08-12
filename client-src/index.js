@@ -1172,7 +1172,7 @@ async function render_settings(section){
   c=c+'<div class="col-6">';
   // buttons
   c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
-  c=c+' <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>';
+  //c=c+' <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>';
   c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
   c=c+'</div></div>';
   c=c+'<div class="row"><div class="col-1"></div><div class="col-6"><hr></div></div>';
@@ -1191,13 +1191,29 @@ async function render_settings(section){
   c=c+'<div class="row"><div class="col-1"></div>';
   c=c+'<div class="col-1">Choose';
   c=c+'</div>';
-  c=c+'<div class="col-4">';
+  c=c+'<div class="col-6">';
   c=c+'Signature';
   c=c+'</div>';
-  c=c+'<div class="col-1">';
+  c=c+'<div class="col-2">';
   c=c+'Initials';
   c=c+'</div></div>';
-  let background='bg-light';
+  // file uploads
+  c=c+'<div class="row">'
+  c=c+'<div class="col-1"></div>';
+  c=c+'<div class="col-1 bg-light">';
+  c=c+'<div class="form-check ">'
+  c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt" value="fileupload">';
+  c=c+'</div>';
+  c=c+'</div>';
+  c=c+'<div class="col-6 bg-light">';
+  c=c+'<input class="form-control" type="file" accept="image/*" id="signaturefile">';
+  c=c+'<img src="" id="previewSignature" height="100" hidden>'
+  c=c+'</div>';
+  c=c+'<div class="col-2 bg-light">';
+  c=c+'<input class="form-control" type="file" accept="image/*" id="initialsfile">';
+  c=c+'<img src="" id="previewInitials" height="100" hidden>'
+  c=c+'</div></div>';
+  let background='bg-white';
   for(let i=0;i<fonts.length;i++) {
     if(fonts[i].length==0)
       continue;
@@ -1208,10 +1224,10 @@ async function render_settings(section){
     c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'" value="'+i+'">';
     c=c+'</div>';
     c=c+'</div>';
-    c=c+'<div class="col-4 '+background+' text-dark">';
+    c=c+'<div class="col-6 '+background+' text-dark">';
     c=c+'<div id="signature'+i+'"></div>';
     c=c+'</div>';
-    c=c+'<div class="col-1 '+background+' text-dark">';
+    c=c+'<div class="col-2 '+background+' text-dark">';
     c=c+'<div id="initials'+i+'"></div>';
     c=c+'</div></div>';
     nrFonts=nrFonts+1;
@@ -1260,15 +1276,16 @@ async function render_settings(section){
   fullname.addEventListener('input', render_signatures, false);   
   const initials=document.getElementById("initials");  
   initials.addEventListener('input', render_signatures, false);   
-  // connect events for the buttons save/upload/cancel
+  // connect events for the buttons save//cancel
   const save=document.getElementById("saveButton");  
   save.addEventListener('click', save_signature, false);    
-  /*
-  const upload=document.getElementById("uploadButton");  
-  upload.addEventListener('click', upload_signature, false);    
-  */
   const cancel=document.getElementById("cancelButton");  
-  cancel.addEventListener('click', render_drafts, false);    
+  cancel.addEventListener('click', render_drafts, false); 
+  // connect event for images upload
+  const signaturefile=document.getElementById("signaturefile");  
+  signaturefile.addEventListener('change', upload_image_signature, false);   
+  const initialsfile=document.getElementById("initialsfile");  
+  initialsfile.addEventListener('change', upload_image_initials, false);   
   
   // return false to avoid that click on href are executed
   return(false); // to avoid that click on href are executed
@@ -1438,6 +1455,10 @@ async function render_signatures() {
         break;
     }
   }
+  // TODO - manage the storage in case of file upload
+  if(radio.value=="file"){
+
+  }
   const fontname=fonts[radio.value];
   console.log(fullname,initials,fontname);
   // call the server to execute the storage
@@ -1463,4 +1484,127 @@ async function render_signatures() {
   }
   //back to main UI
   render_drafts();
+ }
+
+ //function to upload the signature image
+ async function upload_image_signature() {
+  let signaturefile=document.getElementById("signaturefile");
+  // check if the file is selected
+  if(signaturefile.length==0)
+    return;
+  // check for file extension
+  const fn=signaturefile.files[0].name;
+  const extension=fn.slice(-4).toLowerCase();
+  if(extension!=".png" && extension!=".jpg" && extension!=".jpeg"){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+'Wrong file format, you can upload only .png or .jpg/.jpeg files';
+    msg=msg+"</center></div>"; 
+    document.getElementById("msg").innerHTML =msg;
+    return;
+  }
+  // upload of the file
+  let url = window.location.protocol + "//" + window.location.host+"/uploadsignature";
+  let formData = new FormData();
+  formData.append('account', currentAccount.address);
+  formData.append('token', currentToken);
+  formData.append('files', signaturefile.files[0]);
+  fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+  .then(async (answer) => { 
+    let answerJSON = await  answer.json();
+    console.log("answerJSON",answerJSON);
+    if(answerJSON.answer=="OK"){
+      console.log("Upload has been completed",answerJSON);
+      //preview signature signature
+      let previewSignature=document.getElementById("previewSignature");
+      if (signaturefile.files && signaturefile.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          previewSignature.src = e.target.result;
+          previewSignature.hidden=false;
+        }
+        reader.readAsDataURL(signaturefile.files[0]);
+      }
+      return;
+    }else {
+      console.log("Upload has NOT been completed",answerJSON);
+      let msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+answerJSON.message;
+      msg=msg+"</center></div>"; 
+      document.getElementById("msg").innerHTML =msg;
+      return;
+    }
+  })
+  .catch((e) => { 
+    console.log("error during the upload",e)
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Error during the upload, please retry later...."+e;
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return;
+   });
+  return;
+ }
+ //function to upload the initials image
+ async function upload_image_initials() {
+  let initialsfile=document.getElementById("initialsfile");
+  // check if the file is selected
+  if(initialsfile.length==0)
+    return;
+  // check for file extension
+  const fn=initialsfile.files[0].name;
+  const extension=fn.slice(-4).toLowerCase();
+  if(extension!=".png" && extension!=".jpg" && extension!=".jpeg"){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+'Wrong file format, you can upload only .png or .jpg/.jpeg files';
+    msg=msg+"</center></div>"; 
+    document.getElementById("msg").innerHTML =msg;
+    return;
+  }
+  // upload of the file
+  let url = window.location.protocol + "//" + window.location.host+"/uploadinitials";
+  let formData = new FormData();
+  formData.append('account', currentAccount.address);
+  formData.append('token', currentToken);
+  formData.append('files', initialsfile.files[0]);
+  fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+  .then(async (answer) => { 
+    let answerJSON = await  answer.json();
+    console.log("answerJSON",answerJSON);
+    if(answerJSON.answer=="OK"){
+      console.log("Upload has been completed",answerJSON);
+      //preview signature signature
+      let previewInitials=document.getElementById("previewInitials");
+      if (initialsfile.files && initialsfile.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          previewInitials.src = e.target.result;
+          previewInitials.hidden=false;
+        }
+        reader.readAsDataURL(initialsfile.files[0]);
+      }
+      return;
+    }else {
+      console.log("Upload has NOT been completed",answerJSON);
+      let msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+answerJSON.message;
+      msg=msg+"</center></div>"; 
+      document.getElementById("msg").innerHTML =msg;
+      return;
+    }
+  })
+  .catch((e) => { 
+    console.log("error during the upload",e)
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Error during the upload, please retry later...."+e;
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return;
+   });
+  return;
  }
