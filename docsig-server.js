@@ -1091,7 +1091,7 @@ async function mainloop(){
         const account=req.query.account;
         // check security token
         if(typeof token ==='undefined'){
-            console.log("ERROR: Missing token in request documentsrejected");
+            console.log("ERROR: Missing token in request signaturefonts");
             const answer='{"answer":"KO","message":"token is mandatory"}';
             res.send(answer);
             return;
@@ -1121,16 +1121,105 @@ async function mainloop(){
         const fonts=await get_fonts_list();
         const fontsr={"selected":"","fonts":fonts};
         res.send(JSON.stringify(fontsr));
-        /*
-        // make query to get templates 
-        const [rows, fields] = await connection.execute("select tags from templates");
-        // send the back the records in json format
-        const tags=getUniqueTags(rows);
-        res.send(JSON.stringify(tags));
-        */
         connection.close();
         return;
     });
+    // function to store the standard signature
+    app.get('/updatesignature', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        const fullname=req.query.fullname;
+        const initials=req.query.initials;
+        const fontname=req.query.fontname;
+
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request updatesignature");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request updatesignature");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check full name
+        if(typeof fullname ==='undefined'){
+            console.log("ERROR: Missing fullname in request updatesignature");
+            const answer='{"answer":"KO","message":"fullname is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        if(fullname.length ==0){
+            console.log("ERROR: Empty fullname in request updatesignature");
+            const answer='{"answer":"KO","message":"fullname is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check initials
+        if(typeof initials ==='undefined'){
+            console.log("ERROR: Missing initials in request updatesignature");
+            const answer='{"answer":"KO","message":"initials is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        if(initials.length ==0){
+            console.log("ERROR: Empty initials in request updatesignature");
+            const answer='{"answer":"KO","message":"initials is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check fontname
+        if(typeof fontname ==='undefined'){
+            console.log("ERROR: Missing fontname in request updatesignature");
+            const answer='{"answer":"KO","message":"fontname is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        if(fontname.length ==0){
+            console.log("ERROR: Empty fontname in request updatesignature");
+            const answer='{"answer":"KO","message":"fontname is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check if fontname does exist on disk
+        if(!fs.existsSync('html/'+fontname)){
+            console.log("ERROR: Wrong fontname in request updatesignature");
+            const answer='{"answer":"KO","message":"fontname has not been found"}';
+            res.send(answer);
+            return;
+        }
+        // connect db
+        connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            connection.close();
+            return;
+        }
+        // store on DB the standard signature
+        await connection.execute('update users set signaturefullname=?,signatureinitials=?,signaturefontname=? where account=? and token=?',[fullname,initials,fontname,account,token]);
+        const answer='{"answer":"OK","message":"Standard signature has been updated"}';
+        res.send(answer);
+        //close db
+        connection.close();
+        return;
+    });
+    
+
+
 
     // manage upload of files
     app.post("/upload", upload.array("files"), uploadFiles);
@@ -1237,6 +1326,7 @@ async function update_status_documents_waiting(account,connection){
     }
     return;
 }
+// get the unique tags from templates
 function getUniqueTags(rows) {
     // Join all tags into a single string
     let i=0;

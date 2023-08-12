@@ -1143,6 +1143,7 @@ async function render_settings(section){
   c=c+'</center></div>';
   c=c+'</div>';
   c=c+'<div id="msg"></div>';
+  // tabs signature/encryption
   c=c+'<div class="row"><div class="col">';
   c=c+'<ul class="nav nav-pills nav-fill">';
   c=c+'<li class="nav-item">';
@@ -1157,6 +1158,7 @@ async function render_settings(section){
   c=c+'<h5 style="text-align: center">Edit Your Signature</h5>';
   c=c+'<hr>';
   c=c+'</div></div>';
+  //input fields
   c=c+'<div class="row"><div class="col-1"></div>';
   c=c+'<div class="col-5">';
   c=c+'<label for="fullname" class="form-label">Full Name</label>'
@@ -1166,9 +1168,14 @@ async function render_settings(section){
   c=c+'<label for="initials" class="form-label">Initials</label>'
   c=c+'<input class="form-control" type="text" placeholder="" aria-label="default input initials" id="initials" required>';
   c=c+'</div></div>';
+  c=c+'<div class="row"><div class="col-1"></div>'
+  c=c+'<div class="col-6">';
+  // buttons
+  c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
+  c=c+' <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>';
+  c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
+  c=c+'</div></div>';
   c=c+'<div class="row"><div class="col-1"></div><div class="col-6"><hr></div></div>';
-
-  
   // fetch the fonts available with the one selected if any
   const params={
     token: currentToken,
@@ -1199,7 +1206,7 @@ async function render_settings(section){
     c=c+'<div class="col-1"></div>';
     c=c+'<div class="col-1 '+background+' text-dark">';
     c=c+'<div class="form-check ">'
-    c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'"'+slt+'>';
+    c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'"'+slt+' value="'+i+'">';
     c=c+'</div>';
     c=c+'</div>';
     c=c+'<div class="col-4 '+background+' text-dark">';
@@ -1215,76 +1222,27 @@ async function render_settings(section){
       background='bg-light';
     slt='';
   }
-  console.log(c);
   document.getElementById("root").innerHTML =c;
   // set the full name and initials
   document.getElementById("fullname").value ="John Doe";
   document.getElementById("initials").value ="JD";
+  // make first rendering of the signatures
   await render_signatures();
+  // set the refresh of the signatures at every typing inside the fullname/initials
   const fullname=document.getElementById("fullname");  
   fullname.addEventListener('input', render_signatures, false);   
   const initials=document.getElementById("initials");  
-  initials.addEventListener('input', render_signatures, false);    
-  return;
-  c=c+'<div class="row"><div class="col">';
-  c=c+'<table class="table table-dark table-striped table-hover">';
-
-  c=c+'<tr><td>#</td><td>Description</td><td>File Name</td><td>Size</td><td>Last Update</td><td>Status</td></tr>';
-  for(let i=0;i<documentsJSON.length;i++) {
-    c=c+'<tr id="r'+documentsJSON[i].id+'">'
-    c=c+'<td id="I'+documentsJSON[i].id+'">'+documentsJSON[i].id+'</td>';
-    c=c+'<td id="D'+documentsJSON[i].id+'">'+documentsJSON[i].description+'</td>';
-    c=c+'<td id="F'+documentsJSON[i].id+'">'+documentsJSON[i].originalfilename+'</td>';
-    const sn=Math.round(documentsJSON[i].size/1024);
-    const s=sn.toLocaleString('en-US');
-    c=c+'<td id="K'+documentsJSON[i].id+'">'+s+' kb</td>';
-    let dt=documentsJSON[i].dtlastupdate;
-    dt=dt.replace('T',' ');
-    dt=dt.replace('.000Z','');
-    dt=dt.substring(0,16);
-    c=c+'<td id="T'+documentsJSON[i].id+'">'+dt+'</td>';
-    c=c+'<td id="S'+documentsJSON[i].id+'">'+documentsJSON[i].status+'</td>';
-    c=c+'</tr>';
-  }
-  c=c+'</table>';
-  c=c+'</div></div>';
+  initials.addEventListener('input', render_signatures, false);   
+  // connect events for the buttons save/upload/cancel
+  const save=document.getElementById("saveButton");  
+  save.addEventListener('click', save_signature, false);    
+  /*
+  const upload=document.getElementById("uploadButton");  
+  upload.addEventListener('click', upload_signature, false);    
+  */
+  const cancel=document.getElementById("cancelButton");  
+  cancel.addEventListener('click', render_drafts, false);    
   
-  
-  
-  document.getElementById("root").innerHTML =c;
-  //console.log(c);
-  // connect events for the tabs
-  const drafts=document.getElementById("drafts");  
-  drafts.addEventListener('click', render_drafts, false);    
-  const approved=document.getElementById("approved");  
-  approved.addEventListener('click', render_approved, false);    
-  const waiting=document.getElementById("waiting");  
-  waiting.addEventListener('click', render_waiting, false);    
-  //const actionrequired=document.getElementById("actionrequired");  
-  //actionrequired.addEventListener('click', render_actionrequired, false);    
-  const rejected=document.getElementById("rejected");  
-  rejected.addEventListener('click', render_rejected, false);    
-  // connect the button to the rendering UI function
-  document.getElementById("createnew").onclick = () => {render_file_upload();};
-  // connect the button to the editing of an empty document
-  document.getElementById("blankdocument").onclick = () => {render_editor_document();};
-  // connect the button to the templates management
-  document.getElementById("templates").onclick = () => {render_templates();};
-  // set active tab
-  document.getElementById(section).className = "nav-link active";
-  // connect events for the documents in the table
-  for(let i=0;i<documentsJSON.length;i++) {
-    const r=document.getElementById("r"+documentsJSON[i].id);
-    r.addEventListener('click',documentactions,{ capture: true });
-  }
-  // connect events for cards
-  if(documentsJSON.length==0){
-    document.getElementById("upload-document").onclick = () => {render_file_upload();};
-    // connect the button to the editing of an empty document
-    document.getElementById("create-blank").onclick = () => {render_editor_document();};
-    // connect the button to the templates management
-    document.getElementById("select-template").onclick = () => {render_templates();};
-  }
   // return false to avoid that click on href are executed
   return(false); // to avoid that click on href are executed
 }
@@ -1440,4 +1398,42 @@ async function render_signatures() {
   }
   // we set the flag to avoid reloading the fonts multiple times
   fontsFlag=true;
+ }
+ //function to save the standard signature
+ async function save_signature() {
+  const fullname=document.getElementById("fullname").value;
+  const initials=document.getElementById("initials").value;
+  const signatureradio=document.getElementsByName('signatureradio');
+  let radio;
+  for (radio of signatureradio){
+    if (radio.checked) {
+        //console.log("radio.value",radio.value);
+        break;
+    }
+  }
+  const fontname=fonts[radio.value];
+  console.log(fullname,initials,fontname);
+  // call the server to execute the storage
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+    fullname: fullname,
+    initials: initials,
+    fontname: fontname
+  }
+  let url = window.location.protocol + "//" + window.location.host+"/updatesignature";
+   url=url+`?${qs.stringify(params)}`;
+   console.log("url",url);
+  const response = await fetch(url,{method: 'GET',},);
+  let answerJSON = await  response.json();
+  // check the answer from the server
+  if(answerJSON.answer=='KO'){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+answerJSON.message;
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  //back to main UI
+  render_drafts();
  }
