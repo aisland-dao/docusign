@@ -1217,6 +1217,55 @@ async function mainloop(){
         connection.close();
         return;
     });
+    // function to fetch the standard signature
+    app.get('/getsignature', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request updatesignature");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request updatesignature");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // connect db
+        connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            connection.close();
+            return;
+        }
+        // get the standard signature (possible empty data if was not set)
+        const [rows, fields] = await connection.execute('select signaturefullname as fullname,signatureinitials as initials,signaturefontname as fontname from users where account=? and token=?',[account,token]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"user not found"}';
+            res.send(answer);
+            connection.close();
+            return;        
+        }
+        // send back signature data
+        res.send(JSON.stringify(rows[0]));
+        //close db
+        connection.close();
+        return;
+    });
     
 
 
@@ -1358,9 +1407,11 @@ async function get_fonts_list(){
         let dpath=folderPath+f[i]+"/";
         //console.log(dpath);
         let ffn= await get_font_filename(dpath);
-        if(ffn.length>0)
+        if(ffn.length>0){
             ffn=ffn.replace("html/","");
-            fr.push(ffn);
+            if(ffn.length>0)
+                fr.push(ffn);
+        }
     }
     return(fr);
 }

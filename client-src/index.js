@@ -1198,7 +1198,6 @@ async function render_settings(section){
   c=c+'Initials';
   c=c+'</div></div>';
   let background='bg-light';
-  let slt=" checked";
   for(let i=0;i<fonts.length;i++) {
     if(fonts[i].length==0)
       continue;
@@ -1206,7 +1205,7 @@ async function render_settings(section){
     c=c+'<div class="col-1"></div>';
     c=c+'<div class="col-1 '+background+' text-dark">';
     c=c+'<div class="form-check ">'
-    c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'"'+slt+' value="'+i+'">';
+    c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'" value="'+i+'">';
     c=c+'</div>';
     c=c+'</div>';
     c=c+'<div class="col-4 '+background+' text-dark">';
@@ -1220,12 +1219,40 @@ async function render_settings(section){
       background='bg-white';
     else
       background='bg-light';
-    slt='';
   }
   document.getElementById("root").innerHTML =c;
-  // set the full name and initials
-  document.getElementById("fullname").value ="John Doe";
-  document.getElementById("initials").value ="JD";
+  // fetch current standard signature
+  url = window.location.protocol + "//" + window.location.host+"/getsignature";
+  url=url+`?${qs.stringify(params)}`;
+  const responses = await fetch(url,{method: 'GET',},);
+  let answerJSON = await  responses.json();
+  console.log("answerJSON",answerJSON);
+  if(typeof answerJSON.fullname=='undefined'){
+    // set the full name and initials
+    document.getElementById("fullname").value ="John Doe";
+    document.getElementById("initials").value ="JD";  
+  }else {
+    if(answerJSON.fullname=='')
+      document.getElementById("fullname").value ="John Doe";
+    else
+      document.getElementById("fullname").value =answerJSON.fullname;
+    if(answerJSON.initials=='')
+      document.getElementById("initials").value ="JD";
+    else
+      document.getElementById("initials").value =answerJSON.initials;
+    // set the fontname
+    if(answerJSON.fontname!=''){
+      for(let i=0;i<fonts.length;i++){
+        if(fonts[i]==answerJSON.fontname){
+          document.getElementById("signatureopt"+i).checked=true;
+        }
+      }
+    }else{
+      document.getElementById("signatureopt0").checked=true;
+    }
+      
+      
+  }
   // make first rendering of the signatures
   await render_signatures();
   // set the refresh of the signatures at every typing inside the fullname/initials
