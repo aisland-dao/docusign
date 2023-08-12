@@ -1084,6 +1084,53 @@ async function mainloop(){
             }
         });
     });
+    // function to return the documents in approved status
+    app.get('/signaturefonts', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request documentsrejected");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request signaturefonts");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            res.send(answer);
+            connection.close();
+            return;
+        }
+        const fonts=await get_fonts_list();
+        const fontsr={"selected":"","fonts":fonts};
+        res.send(JSON.stringify(fontsr));
+        /*
+        // make query to get templates 
+        const [rows, fields] = await connection.execute("select tags from templates");
+        // send the back the records in json format
+        const tags=getUniqueTags(rows);
+        res.send(JSON.stringify(tags));
+        */
+        connection.close();
+        return;
+    });
 
     // manage upload of files
     app.post("/upload", upload.array("files"), uploadFiles);
@@ -1207,5 +1254,37 @@ function getUniqueTags(rows) {
     // Convert the Set back to an array
     let uniqueTagsArray = Array.from(uniqueTagsSet);
     return uniqueTagsArray.sort();
-  }
-  
+}
+// function to ge the font list from the folder html/fonts/
+async function get_fonts_list(){
+    const folderPath='html/fonts/';
+    let f=fs.readdirSync(folderPath);
+    const x=f.length;
+    let fr=[];
+    for(let i=0;i<x;i++){
+        if(f[i][0]=='.')
+            continue;
+        // search for font file name
+        let dpath=folderPath+f[i]+"/";
+        //console.log(dpath);
+        let ffn= await get_font_filename(dpath);
+        if(ffn.length>0)
+            ffn=ffn.replace("html/","");
+            fr.push(ffn);
+    }
+    return(fr);
+}
+// function to search for font file name in a path
+async function get_font_filename(folderPath){
+
+    let f=fs.readdirSync(folderPath);
+    const x=f.length;
+    let fr=[];
+    for(let i=0;i<x;i++){  
+        if(f[i].includes(".ttf") || f[i].includes(".otf")){
+            return(folderPath+f[i])
+        }
+    }
+    return('');
+}
+

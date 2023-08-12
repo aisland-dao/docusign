@@ -7,7 +7,6 @@ import Strikethrough from '@sotaproject/strikethrough';
 
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { u8aToString } = require('@polkadot/util');
-//const Header = require('@editorjs/header');
 const Header = require("editorjs-header-with-alignment");
 const Quote = require('@editorjs/quote');
 const Delimiter = require('@editorjs/delimiter');
@@ -15,6 +14,7 @@ const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
 //for encryption/decryption
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+//for binary serialization
 const { unpack, pack } = require('msgpackr');
 
 let lastaccountidx=0;
@@ -25,7 +25,9 @@ let documentsJSON=[];
 let currentDocumentId=0;
 let actionsModal = new bootstrap.Modal('#documentActions', {focus: true})
 let signDocumentModal = new bootstrap.Modal('#signDocument', {focus: true})
-
+let fontsFlag=false;  //used to avoid multiple loading of the fonts
+let nrFonts=0;        // the number of fonts loaded
+let fonts=[];         // fonts array loaded from disk
 
 
 let signaturetoken='';
@@ -39,20 +41,26 @@ if(sessionAccount != null){
   currentAccount=JSON.parse(sessionAccount);
   render_main('drafts');
 }
-// enable web3
+// enable web3 functions, it's a call required
 enableWeb3()
-
+// Here we set the actions of the different menu/buttons/links
 // connect wallet button
 document.getElementById("connect").onclick = () => {
   connectWallet();
 };
-// logout
+// logout, remove all the session data
 document.getElementById("logout").onclick = () => {
   window.sessionStorage.clear();
 };
-// jump to templates
+// jump to templates rendering
 document.getElementById("menutemplates").onclick = () => {
   render_templates();
+  // return false to avoid following the href
+  return(false);
+};
+// jump to settings rendering, the settings has multiple tabs
+document.getElementById("menusettings").onclick = () => {
+  render_settings();
   // return false to avoid following the href
   return(false);
 };
@@ -421,6 +429,7 @@ document.getElementById("docsignsign").onclick = async () => {
 
   }
 };
+// **** block of functions called from the call to actions (CATS) (also known as feline friends)
 //function to write the document description
 async function writeDocumentDescription(){
   //get new description
@@ -551,7 +560,7 @@ async function connectWallet(){
 async function render_main(section){
   // read signature token
   signaturetoken=getCookie('signaturetoken');
-  // force the waiting the first time
+  // force the waiting document at the first time
   let signaturetokenfirstview=getCookie('signaturetokenfirstview');
   console.log("signaturetoken",signaturetoken);
   console.log("signaturetokenfirstview",signaturetokenfirstview);
@@ -564,7 +573,6 @@ async function render_main(section){
   // title
   let c='<div class="row">';
   c=c+'<div class="col-8 pb-1" style="background-color:#D2E3FF" ><center><h2>Blockchain Documents Signing</h2></center></div>';
-  //c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center><button type="button" class="btn btn-primary" id="createnew"><i class="bi bi-journal-plus"></i> Create New</button></center></div>';
   c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center>';
   c=c+'<div class="dropdown">';
   c=c+'<button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
@@ -736,7 +744,7 @@ function get_document_data(id){
   }
   return({})
 }
-//functions to render the different status since we cannot
+//functions to render the different status from the links/buttons
 function render_drafts(){
   render_main("drafts");
 }
@@ -1007,26 +1015,7 @@ async function documentcancel(evt){
     return;
   }
 }
-// function to convert bytes to hex 
-function bytestohex(bytes) {
-  var hexstring='', h;
-  for(var i=0; i<bytes.length; i++) {
-      h=bytes[i].toString(16);
-      if(h.length==1) { h='0'+h; }
-      hexstring+=h;
-  }   
-  return hexstring;
-}
-// function to read cookie value
-function getCookie(name){
-  var pattern = RegExp(name + "=.[^;]*");
-  var matched = document.cookie.match(pattern);
-  if(matched){
-      var cookie = matched[0].split('=');
-      return cookie[1];
-  }
-  return '';
-}
+
 //function to render templates management
 async function render_templates(tagfilterv){
   // fetch tags
@@ -1144,7 +1133,163 @@ async function showtemplate(){
   document.getElementById("templateview").innerHTML =html;
   document.getElementById("templateview").style.border = "solid #434545";
 }
-//function to filter thw template by tag
+// function to render the main user interface after sign-in
+async function render_settings(section){
+  
+  // title
+  let c='<div class="row">';
+  c=c+'<div class="col-8 pb-1" style="background-color:#D2E3FF" ><center><h2>DocSig - Settings</h2></center></div>';
+  c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center>';
+  c=c+'</center></div>';
+  c=c+'</div>';
+  c=c+'<div id="msg"></div>';
+  c=c+'<div class="row"><div class="col">';
+  c=c+'<ul class="nav nav-pills nav-fill">';
+  c=c+'<li class="nav-item">';
+  c=c+'<a class="nav-link active" id="standardSignature"  href="#"><i class="bi bi-vector-pen"></i> Signature</a>';
+  c=c+'</li>';
+  c=c+'<li class="nav-item">';
+  c=c+'<a class="nav-link" id="Encryption" href="#"><i class="bi bi-file-earmark-lock2"></i> Encryption</a>';
+  c=c+'</li>';
+  c=c+'</ul>';
+  c=c+'</div></div>';
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-6">';
+  c=c+'<h5 style="text-align: center">Edit Your Signature</h5>';
+  c=c+'<hr>';
+  c=c+'</div></div>';
+  c=c+'<div class="row"><div class="col-1"></div>';
+  c=c+'<div class="col-5">';
+  c=c+'<label for="fullname" class="form-label">Full Name</label>'
+  c=c+'<input class="form-control" type="text" placeholder="" aria-label="default input fullname" id="fullname" required >';
+  c=c+'</div>';
+  c=c+'<div class="col-1">';
+  c=c+'<label for="initials" class="form-label">Initials</label>'
+  c=c+'<input class="form-control" type="text" placeholder="" aria-label="default input initials" id="initials" required>';
+  c=c+'</div></div>';
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-6"><hr></div></div>';
+
+  
+  // fetch the fonts available with the one selected if any
+  const params={
+    token: currentToken,
+    account: currentAccount.address,
+  }
+  // fetch data
+  let url = window.location.protocol + "//" + window.location.host+"/signaturefonts";
+  const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+  const fontsJSON = await  response.json();
+  console.log(fontsJSON);
+  fonts=fontsJSON.fonts;
+  //header
+  c=c+'<div class="row"><div class="col-1"></div>';
+  c=c+'<div class="col-1">Choose';
+  c=c+'</div>';
+  c=c+'<div class="col-4">';
+  c=c+'Signature';
+  c=c+'</div>';
+  c=c+'<div class="col-1">';
+  c=c+'Initials';
+  c=c+'</div></div>';
+  let background='bg-light';
+  let slt=" checked";
+  for(let i=0;i<fonts.length;i++) {
+    if(fonts[i].length==0)
+      continue;
+    c=c+'<div class="row">'
+    c=c+'<div class="col-1"></div>';
+    c=c+'<div class="col-1 '+background+' text-dark">';
+    c=c+'<div class="form-check ">'
+    c=c+'<input class="form-check-input" type="radio" name="signatureradio" id="signatureopt'+i+'"'+slt+'>';
+    c=c+'</div>';
+    c=c+'</div>';
+    c=c+'<div class="col-4 '+background+' text-dark">';
+    c=c+'<div id="signature'+i+'"></div>';
+    c=c+'</div>';
+    c=c+'<div class="col-1 '+background+' text-dark">';
+    c=c+'<div id="initials'+i+'"></div>';
+    c=c+'</div></div>';
+    nrFonts=nrFonts+1;
+    if(background=='bg-light')
+      background='bg-white';
+    else
+      background='bg-light';
+    slt='';
+  }
+  console.log(c);
+  document.getElementById("root").innerHTML =c;
+  // set the full name and initials
+  document.getElementById("fullname").value ="John Doe";
+  document.getElementById("initials").value ="JD";
+  await render_signatures();
+  const fullname=document.getElementById("fullname");  
+  fullname.addEventListener('input', render_signatures, false);   
+  const initials=document.getElementById("initials");  
+  initials.addEventListener('input', render_signatures, false);    
+  return;
+  c=c+'<div class="row"><div class="col">';
+  c=c+'<table class="table table-dark table-striped table-hover">';
+
+  c=c+'<tr><td>#</td><td>Description</td><td>File Name</td><td>Size</td><td>Last Update</td><td>Status</td></tr>';
+  for(let i=0;i<documentsJSON.length;i++) {
+    c=c+'<tr id="r'+documentsJSON[i].id+'">'
+    c=c+'<td id="I'+documentsJSON[i].id+'">'+documentsJSON[i].id+'</td>';
+    c=c+'<td id="D'+documentsJSON[i].id+'">'+documentsJSON[i].description+'</td>';
+    c=c+'<td id="F'+documentsJSON[i].id+'">'+documentsJSON[i].originalfilename+'</td>';
+    const sn=Math.round(documentsJSON[i].size/1024);
+    const s=sn.toLocaleString('en-US');
+    c=c+'<td id="K'+documentsJSON[i].id+'">'+s+' kb</td>';
+    let dt=documentsJSON[i].dtlastupdate;
+    dt=dt.replace('T',' ');
+    dt=dt.replace('.000Z','');
+    dt=dt.substring(0,16);
+    c=c+'<td id="T'+documentsJSON[i].id+'">'+dt+'</td>';
+    c=c+'<td id="S'+documentsJSON[i].id+'">'+documentsJSON[i].status+'</td>';
+    c=c+'</tr>';
+  }
+  c=c+'</table>';
+  c=c+'</div></div>';
+  
+  
+  
+  document.getElementById("root").innerHTML =c;
+  //console.log(c);
+  // connect events for the tabs
+  const drafts=document.getElementById("drafts");  
+  drafts.addEventListener('click', render_drafts, false);    
+  const approved=document.getElementById("approved");  
+  approved.addEventListener('click', render_approved, false);    
+  const waiting=document.getElementById("waiting");  
+  waiting.addEventListener('click', render_waiting, false);    
+  //const actionrequired=document.getElementById("actionrequired");  
+  //actionrequired.addEventListener('click', render_actionrequired, false);    
+  const rejected=document.getElementById("rejected");  
+  rejected.addEventListener('click', render_rejected, false);    
+  // connect the button to the rendering UI function
+  document.getElementById("createnew").onclick = () => {render_file_upload();};
+  // connect the button to the editing of an empty document
+  document.getElementById("blankdocument").onclick = () => {render_editor_document();};
+  // connect the button to the templates management
+  document.getElementById("templates").onclick = () => {render_templates();};
+  // set active tab
+  document.getElementById(section).className = "nav-link active";
+  // connect events for the documents in the table
+  for(let i=0;i<documentsJSON.length;i++) {
+    const r=document.getElementById("r"+documentsJSON[i].id);
+    r.addEventListener('click',documentactions,{ capture: true });
+  }
+  // connect events for cards
+  if(documentsJSON.length==0){
+    document.getElementById("upload-document").onclick = () => {render_file_upload();};
+    // connect the button to the editing of an empty document
+    document.getElementById("create-blank").onclick = () => {render_editor_document();};
+    // connect the button to the templates management
+    document.getElementById("select-template").onclick = () => {render_templates();};
+  }
+  // return false to avoid that click on href are executed
+  return(false); // to avoid that click on href are executed
+}
+//function to filter the template by tag
+// TODO - check since it's not used
 function tagfilter(evt){
   console.log("tagfilter",evt.currentTarget.param);
   render_templates(evt.currentTarget.param);
@@ -1185,13 +1330,13 @@ async function encrypt_stream(msg,senderprivatekey,senderpublickey,recipientpubl
   const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickey,senderprivatekey);
   // use the first 32 bytes of the secret key to encrypt the msg by chacha algorithm
   const secretkeychacha=secretkey.slice(0,32);
-  // generate a nonce for chacha20 (24 bytes)
+  // generate a nonce for chacha20 192 bit as required from the algorithm
   const noncechacha = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
   const encmsgchacha=sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(msg,null,null,noncechacha,secretkeychacha);
   // encrypt by AES-256 gcm
-  //generate nonce for aes
+  //generate nonce for AES 96 bit as required from the algorithm
   const nonceaes=sodium.randombytes_buf(12);
-  // get secret key for Aes
+  // get secret key for Aes - 256 bit
   const secretkeyaes=secretkey.slice(32);
   // set the algorithm
   const alg = { name: 'AES-GCM', iv: nonceaes };
@@ -1212,7 +1357,7 @@ async function encrypt_stream(msg,senderprivatekey,senderpublickey,recipientpubl
     //nonceaes: nonceaes,
     //encmsgaes: encmsgaes
   };
-  // return encrypted object serialized with msgpackr
+  // return encrypted object serialized with msgpackr wich is quite compact, in json would create a much bigger blob
   return(pack(result));
 }
 // function to decrypt a msg and return an Uin8array with the clear message (private/public keys belongs to the party wishing to decrypt)
@@ -1243,4 +1388,56 @@ async function decrypt_stream(encmsgb,privatekey,publickey){
     let result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
     return(result);
   }
- 
+
+  // utility function to convert bytes to hex 
+  function bytestohex(bytes) {
+    var hexstring='', h;
+    for(var i=0; i<bytes.length; i++) {
+        h=bytes[i].toString(16);
+        if(h.length==1) { h='0'+h; }
+        hexstring+=h;
+    }   
+    return hexstring;
+  }
+  // utility function to read cookie value
+  function getCookie(name){
+    var pattern = RegExp(name + "=.[^;]*");
+    var matched = document.cookie.match(pattern);
+    if(matched){
+        var cookie = matched[0].split('=');
+        return cookie[1];
+    }
+    return '';
+}
+// render the signature with different type of fonts
+// from global vars
+async function render_signatures() {
+  console.log("render_signatures called");
+  const fullnamev=document.getElementById("fullname").value;
+  const initialsv=document.getElementById("initials").value;
+  // generate the signatures with different fonts
+  for(let i=0;i<fonts.length;i++) {
+    //console.log("font: ",fonts[i]);
+    if(fonts[i].length==0)
+      continue;
+    // we load the fonts one time only
+    if(fontsFlag==false){
+        const fontFile = new FontFace(
+          "font"+i,
+          "url("+fonts[i]+")",
+        );
+        document.fonts.add(fontFile);
+        await fontFile.load();
+    }
+    let sgn=document.getElementById("signature"+i);
+    let ini=document.getElementById("initials"+i);
+    sgn.style.fontFamily = "font"+i;
+    sgn.style.fontSize="24px";
+    sgn.innerText = fullnamev;
+    ini.style.fontFamily = "font"+i;
+    ini.style.fontSize="24px";
+    ini.innerText = initialsv;
+  }
+  // we set the flag to avoid reloading the fonts multiple times
+  fontsFlag=true;
+ }
