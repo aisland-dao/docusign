@@ -81,7 +81,7 @@ async function mainloop(){
         }
         // store in DB
         //connect database
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -121,7 +121,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -168,7 +168,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -213,7 +213,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -254,7 +254,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -311,7 +311,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -361,7 +361,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -379,7 +379,7 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=?",[account,documentid]);
         if(rows.length==0){
-            const answer='{"answer":"KO","message":"documentid not found for the account authenticated"}';
+            const answer='{"answer":"KO","message":"documentid not found for the account"}';
             res.send(answer);
             connection.close();
             return;
@@ -474,7 +474,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -553,7 +553,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -622,7 +622,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -640,7 +640,7 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=? and status='draft'",[account,documentid]);
         if(rows.length==0){
-            const answer='{"answer":"KO","message":"documentid in draft not found for the account authenticated"}';
+            const answer='{"answer":"KO","message":"documentid in draft not found for the account"}';
             res.send(answer);
             return;
         }
@@ -690,7 +690,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -708,7 +708,7 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=? or signaturetoken=?) and id=? and status='waiting'",[account,account,signaturetoken,documentid]);
         if(rows.length==0){
-            const answer='{"answer":"KO","message":"documentid in waiting not found for the account authenticated:'+account+' id: '+documentid+'"}';
+            const answer='{"answer":"KO","message":"documentid in waiting not found for the account:'+account+' id: '+documentid+'"}';
             res.send(answer);
             connection.close();
             return;
@@ -751,7 +751,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -769,7 +769,7 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=? and (status='draft' or status='waiting')",[account,documentid]);
         if(rows.length==0){
-            const answer='{"answer":"KO","message":"documentid not found for the account authenticated"}';
+            const answer='{"answer":"KO","message":"documentid not found for the account"}';
             res.send(answer);
             return;
         }
@@ -812,7 +812,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -854,7 +854,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -919,7 +919,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -987,7 +987,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1036,7 +1036,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1054,7 +1054,7 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=?",[account,documentid]);
         if(rows.length==0){
-            const answer='{"answer":"KO","message":"documentid not found for the account authenticated"}';
+            const answer='{"answer":"KO","message":"documentid not found for the account"}';
             res.send(answer);
             connection.close();
             return;
@@ -1103,7 +1103,7 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1186,15 +1186,18 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        // check if fontname does exist on disk
-        if(!fs.existsSync('html/'+fontname)){
-            console.log("ERROR: Wrong fontname in request updatesignature");
-            const answer='{"answer":"KO","message":"fontname has not been found"}';
-            res.send(answer);
-            return;
+
+        if(fontname !="SCANNED"){
+            // check if fontname does exist on disk
+            if(!fs.existsSync('html/'+fontname)){
+                console.log("ERROR: Wrong fontname in request updatesignature");
+                const answer='{"answer":"KO","message":"fontname has not been found"}';
+                res.send(answer);
+                return;
+            }
         }
         // connect db
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1217,7 +1220,7 @@ async function mainloop(){
         connection.close();
         return;
     });
-    // function to fetch the standard signature
+    // function to fetch the standard signature based on font
     app.get('/getsignature', async function (req, res) {
         // parameters required
         const token=req.query.token;
@@ -1237,7 +1240,7 @@ async function mainloop(){
             return;
         }
         // connect db
-        connection = await mysql.createConnection({
+        let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1266,11 +1269,91 @@ async function mainloop(){
         connection.close();
         return;
     });
+    // scanned signatures download
+    app.get('/getsignaturescanned', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        const type=req.query.type;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request getsignaturescanned");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request getsignaturescanned");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check type
+        if(typeof type ==='undefined'){
+            console.log("ERROR: Missing type in request getsignaturescanned");
+            const answer='{"answer":"KO","message":"type of the scanned signature (S/I) is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        let connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end()
+            console.log('returning back');
+            return;
+        }
+        // make query for  documents (sql injection is managed)
+        const [rows, fields] = await connection.execute("select * from scannedsignatures where account=? and type=?",[account,type]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"scanned signature not found for the account"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end()
+            console.log('returning back');
+            return;
+        }
+        // configure the sending
+        let options = {
+            root: path.join(__dirname, 'upload'),
+            dotfiles: 'deny',
+            headers: {
+              'Content-Type': rows[0].mimetype,
+              'Content-Disposition': 'attachment; filename='+rows[0].originalfilename,
+              'Content-Length':rows[0].size,
+              'x-timestamp': Date.now(),
+              'x-sent': true,
+            }
+          }
+        //send the file
+        let fileName = rows[0].urlfile;
+        res.sendFile(fileName, options, function (err) {
+            if (err) {
+                console.log(err);
+                connection.end();
+            } else {
+                console.log('File Sent:', fileName);
+                connection.end();
+                return;
+            }
+        });
+    });
+    
+    // various upload functions are grouped here
     // manage signature upload
     app.post("/uploadsignature", upload.array("files"), uploadsignature);
     // manage initials upload
     app.post("/uploadinitials", upload.array("files"), uploadinitials);
-    
     // manage upload of files
     app.post("/upload", upload.array("files"), uploadFiles);
 
@@ -1284,6 +1367,7 @@ async function mainloop(){
     // a reverse proxy like nginx is necessary to use https.
     let server = app.listen(3000, function () { });
 }
+// section of functions outside the app.() express section
 // function to manage the uploaded files
 async function uploadFiles(req, res) {
     //console.log("req.body",req.body);
@@ -1298,7 +1382,7 @@ async function uploadFiles(req, res) {
     if(typeof token === 'undefined'){
         res.send('{"answer":"KO","message":"token is mandatory" }');
     }
-    connection = await mysql.createConnection({
+    let connection = await mysql.createConnection({
             host     : DB_HOST,
             user     : DB_USER,
             password : DB_PWD,
@@ -1345,7 +1429,7 @@ async function update_status_documents_drafts(account,connection){
     for(let i=0;i<rows.length;i++){
         const hash = await api.query.docuSign.documents(account,rows[i].id);
         const hashstring=`${hash}`
-        console.log("hashstring",hashstring);
+        //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             await connection.execute("update documents set status='waiting' where id=?",[rows[i].id])
             console.log("Status changed to 'waiting' for document id:",rows[i].id);
@@ -1361,14 +1445,14 @@ async function update_status_documents_waiting(account,connection){
     for(let i=0;i<rows.length;i++){
         let hash = await api.query.docuSign.signatures(account,rows[i].id);
         let hashstring=`${hash}`
-        console.log("hashstring",hashstring);
+        //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
             console.log("Status changed to 'completed' for document id:",rows[i].id);
         }
         hash = await api.query.docuSign.signatures(rows[i].counterpart,rows[i].id);
         hashstring=`${hash}`
-        console.log("hashstring",hashstring);
+        //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
             console.log("Status changed to 'completed' for document id:",rows[i].id);
@@ -1447,7 +1531,7 @@ async function uploadsignature(req, res) {
         console.log('{"answer":"KO","message":"token is mandatory" }');
         return;
     }
-    connection = await mysql.createConnection({
+    let connection = await mysql.createConnection({
         host     : DB_HOST,
         user     : DB_USER,
         password : DB_PWD,
@@ -1463,10 +1547,8 @@ async function uploadsignature(req, res) {
         connection.close();
         return;
     }
-    // store the file in temporary location for showing and later saving
+    // store the scanned image
     let i=0
-    //for(let i=0;i<req.files.length;i++) 
-    //{
     console.log("req.files[i].orginalname",req.files[i].originalname);
     console.log("req.files[i].filename",req.files[i].filename);
     //computer hash
@@ -1475,8 +1557,16 @@ async function uploadsignature(req, res) {
     hashSum.update(fileBuffer);
     const hash = hashSum.digest('hex');
     console.log("hash",hash);
-    await connection.execute("insert into standardsignaturestmp set account=?,type='S',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
-    //}
+    //search for previous scanned signature
+    const [rows, fields] = await connection.execute("select * from scannedsignatures where account=? and type='S'",[account]);
+    // insert new record
+    if(rows.length==0){
+        await connection.execute("insert into scannedsignatures set account=?,type='S',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+    }else{
+        //update an existing record
+        await connection.execute("update scannedsignatures set originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where account=? and type='S'",[req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash,account]);
+
+    }
     res.send('{"answer":"OK","message":"File has been uploaded" }');
     console.log("closing database");
     connection.close();
@@ -1500,7 +1590,7 @@ async function uploadinitials(req, res) {
         console.log('{"answer":"KO","message":"token is mandatory" }');
         return;
     }
-    connection = await mysql.createConnection({
+    let connection = await mysql.createConnection({
         host     : DB_HOST,
         user     : DB_USER,
         password : DB_PWD,
@@ -1518,8 +1608,6 @@ async function uploadinitials(req, res) {
     }
     // store the file in temporary location for showing and later saving
     let i=0
-    //for(let i=0;i<req.files.length;i++) 
-    //{
     console.log("req.files[i].orginalname",req.files[i].originalname);
     console.log("req.files[i].filename",req.files[i].filename);
     //computer hash
@@ -1528,8 +1616,15 @@ async function uploadinitials(req, res) {
     hashSum.update(fileBuffer);
     const hash = hashSum.digest('hex');
     console.log("hash",hash);
-    await connection.execute("insert into standardsignaturestmp set account=?,type='I',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
-    //}
+    //search for previous scanned signature
+    const [rows, fields] = await connection.execute("select * from scannedsignatures where account=? and type='I'",[account]);
+    // insert new record
+    if(rows.length==0){
+        await connection.execute("insert into scannedsignatures set account=?,type='I',originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",[account,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+    }else{
+        //update an existing record
+        await connection.execute("update scannedsignatures set originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where account=? and type='I'",[req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash,account]);
+    }
     res.send('{"answer":"OK","message":"File has been uploaded" }');
     console.log("closing database");
     connection.close();
