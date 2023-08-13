@@ -1331,6 +1331,7 @@ async function mainloop(){
               'Content-Type': rows[0].mimetype,
               'Content-Disposition': 'attachment; filename='+rows[0].originalfilename,
               'Content-Length':rows[0].size,
+              'Cache-Control': 'no-store',
               'x-timestamp': Date.now(),
               'x-sent': true,
             }
