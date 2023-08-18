@@ -65,3 +65,8 @@ li a:hover {
   background-color: #2196F3;
   margin-top: 8px;
 }
+.displayBadge{
+  margin-top: 3px; 
+  display: none; 
+  text-align :center;
+}

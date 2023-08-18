@@ -14,6 +14,7 @@ const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
 //for encryption/decryption
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+const _sodium =require('libsodium-wrappers-sumo');
 //for binary serialization
 const { unpack, pack } = require('msgpackr');
 
@@ -28,6 +29,7 @@ let signDocumentModal = new bootstrap.Modal('#signDocument', {focus: true})
 let fontsFlag=false;  //used to avoid multiple loading of the fonts
 let nrFonts=0;        // the number of fonts loaded
 let fonts=[];         // fonts array loaded from disk
+let encryptedprivatekey; //encrypted private key
 
 
 let signaturetoken='';
@@ -347,7 +349,7 @@ document.getElementById("docsignsign").onclick = async () => {
     console.log("docdata",docdata);
     if(currentAccount.address==docdata.account){
         //check for document already signed
-        const hash = await api.query.docuSign.documents(docdata.account,currentDocumentId);
+        const hash = await api.query.docSig.documents(docdata.account,currentDocumentId);
         const hashstring=`${hash}`
         //console.log("hash",hash);
         //console.log("hashstring",hashstring);
@@ -361,7 +363,7 @@ document.getElementById("docsignsign").onclick = async () => {
     }else {
         //check for document already signed
         console.log("currentAccount.address ",currentAccount.address,"currentDocumentId ",currentDocumentId);
-        const hash = await api.query.docuSign.signatures(currentAccount.address,currentDocumentId);
+        const hash = await api.query.docSig.signatures(currentAccount.address,currentDocumentId);
         const hashstring=`${hash}`
         //console.log("hash",hash);
         //console.log("hashstring",hashstring);
@@ -398,11 +400,10 @@ document.getElementById("docsignsign").onclick = async () => {
     console.log()
     if(currentAccount.address==docdata.account){
       // proceed with the signature
-      signdocument=api.tx.docuSign.newDocument(currentDocumentId,'0x'+docdata.hash);
+      signdocument=api.tx.docSig.newDocument(currentDocumentId,'0x'+docdata.hash);
     }else{
-      signdocument=api.tx.docuSign.signDocument(currentDocumentId,'0x'+docdata.hash);
+      signdocument=api.tx.docSig.signDocument(currentDocumentId,'0x'+docdata.hash);
     }
-
     //const transferExtrinsic = api.tx.balances.transfer('5C5555yEXUcmEJ5kkcCMvdZjUo7NGJiQJMS7vZXEeoMhj3VQ', 123456);
     signdocument.signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
       if (status.isInBlock) {
@@ -1133,15 +1134,11 @@ async function showtemplate(){
   document.getElementById("templateview").innerHTML =html;
   document.getElementById("templateview").style.border = "solid #434545";
 }
-// function to render the main user interface after sign-in
-async function render_settings(section){
-  
+// function to render the settings/edit signature which is the default tab active
+async function render_settings(){
   // title
   let c='<div class="row">';
-  c=c+'<div class="col-8 pb-1" style="background-color:#D2E3FF" ><center><h2>DocSig - Settings</h2></center></div>';
-  c=c+'<div class="col-4 pb-1" style="background-color:#D2E3FF" ><center>';
-  c=c+'</center></div>';
-  c=c+'</div>';
+  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>DocSig - Settings</h2></center></div>';
   c=c+'<div id="msg"></div>';
   // tabs signature/encryption
   c=c+'<div class="row"><div class="col">';
@@ -1154,7 +1151,7 @@ async function render_settings(section){
   c=c+'</li>';
   c=c+'</ul>';
   c=c+'</div></div>';
-  c=c+'<div class="row"><div class="col-1"></div><div class="col-6">';
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
   c=c+'<h5 style="text-align: center">Edit Your Signature</h5>';
   c=c+'<hr>';
   c=c+'</div></div>';
@@ -1172,10 +1169,9 @@ async function render_settings(section){
   c=c+'<div class="col-6">';
   // buttons
   c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
-  //c=c+' <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>';
   c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
   c=c+'</div></div>';
-  c=c+'<div class="row"><div class="col-1"></div><div class="col-6"><hr></div></div>';
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-9"><hr></div></div>';
   // fetch the fonts available with the one selected if any
   const params={
     token: currentToken,
@@ -1207,11 +1203,19 @@ async function render_settings(section){
   c=c+'</div>';
   c=c+'<div class="col-6 bg-light">';
   c=c+'<input class="form-control" type="file" accept="image/*" id="signaturefile">';
-  c=c+'<img src="" id="previewSignature" height="100" hidden>'
+  let paramss={
+    account: currentAccount.address,
+    token: currentToken,
+    type: 'S'
+  }
+  let urls = window.location.protocol + "//" + window.location.host+"/getsignaturescanned"+`?${qs.stringify(paramss)}`;
+  c=c+'<img src="'+urls+'" id="previewSignature" height="100">'
   c=c+'</div>';
   c=c+'<div class="col-2 bg-light">';
   c=c+'<input class="form-control" type="file" accept="image/*" id="initialsfile">';
-  c=c+'<img src="" id="previewInitials" height="100" hidden>'
+  paramss.type='I'
+  urls = window.location.protocol + "//" + window.location.host+"/getsignaturescanned"+`?${qs.stringify(paramss)}`;
+  c=c+'<img src="'+urls+'" id="previewInitials" height="100">'
   c=c+'</div></div>';
   let background='bg-white';
   for(let i=0;i<fonts.length;i++) {
@@ -1236,6 +1240,7 @@ async function render_settings(section){
     else
       background='bg-light';
   }
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-9"><hr></div></div>';
   document.getElementById("root").innerHTML =c;
   // fetch current standard signature
   url = window.location.protocol + "//" + window.location.host+"/getsignature";
@@ -1257,17 +1262,14 @@ async function render_settings(section){
     else
       document.getElementById("initials").value =answerJSON.initials;
     // set the fontname
+    document.getElementById("signatureopt").checked=true;
     if(answerJSON.fontname!=''){
       for(let i=0;i<fonts.length;i++){
         if(fonts[i]==answerJSON.fontname){
           document.getElementById("signatureopt"+i).checked=true;
         }
       }
-    }else{
-      document.getElementById("signatureopt0").checked=true;
-    }
-      
-      
+    } 
   }
   // make first rendering of the signatures
   await render_signatures();
@@ -1283,12 +1285,358 @@ async function render_settings(section){
   cancel.addEventListener('click', render_drafts, false); 
   // connect event for images upload
   const signaturefile=document.getElementById("signaturefile");  
-  signaturefile.addEventListener('change', upload_image_signature, false);   
+  signaturefile.addEventListener('change', preview_signature, false);   
   const initialsfile=document.getElementById("initialsfile");  
-  initialsfile.addEventListener('change', upload_image_initials, false);   
+  initialsfile.addEventListener('change', preview_initials, false);   
+  const encryption=document.getElementById("Encryption");
+  encryption.addEventListener('click', render_encryption, false);   
+
   
   // return false to avoid that click on href are executed
   return(false); // to avoid that click on href are executed
+}
+// function to render the encryption tab
+async function render_encryption(){
+  // title
+  let c='<div class="row">';
+  c=c+'<div class="col-12 pb-1" style="background-color:#D2E3FF" ><center><h2>DocSig - Settings</h2></center></div>';
+  c=c+'<div id="msg"></div>';
+  // tabs signature/encryption
+  c=c+'<div class="row"><div class="col">';
+  c=c+'<ul class="nav nav-pills nav-fill">';
+  c=c+'<li class="nav-item">';
+  c=c+'<a class="nav-link" id="standardSignature"  href="#"><i class="bi bi-vector-pen"></i> Signature</a>';
+  c=c+'</li>';
+  c=c+'<li class="nav-item">';
+  c=c+'<a class="nav-link active" id="Encryption" href="#"><i class="bi bi-file-earmark-lock2"></i> Encryption</a>';
+  c=c+'</li>';
+  c=c+'</ul>';
+  c=c+'</div></div>';
+  c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
+  c=c+'<h5 style="text-align: center">Configure Encryption</h5>';
+  c=c+'<hr>';
+  c=c+'</div></div>';
+  // get private key of available
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+  }
+  let url = window.location.protocol + "//" + window.location.host+"/getprivatekey";
+  url=url+`?${qs.stringify(params)}`;
+  const response = await fetch(url,{method: 'GET',},);
+  let aj = await  response.json();
+  console.log("aj",aj);
+  if(aj.answer=="KO" || aj.encryptionkey==''){
+      // generate mnemonic seed
+      const mnemonic = mnemonicGenerate();
+      // show a card element
+      c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
+      c=c+'<div class="card">';
+      c=c+'<div class="card-body">';
+      c=c+'<h5 class="card-title">Encryption Keys</h5>';
+      c=c+'<p class="card-text">To encrypt end-to-end the documents, we have to use a keys pair (elliplict curve Ed22519). A random mnemonic phrase has been generated in your browser session. Your private key is derived from the mnemonic phrase.</p>';
+      c=c+'<p class="card-text">You can use the mnemonic phrase to recover the encryption password in case of lost.</p>';
+      c=c+'<p class="card-text">Please store it safely on paper or other non-electronic medium.</p>';
+      c=c+'<p class="card-text"><div class="alert alert-warning" role="alert">We cannot recover your documents if you loose the password and the mnemonic phrase.</div></p>';
+      c=c+'<label for="mnemonicPhrase" class="form-label">Mnemonic Phrase</label>'
+      c=c+'<div class="input-group mb-3">';
+      c=c+'<input class="form-control" type="text" placeholder="" aria-label="default input mnemonicPhrase" id="mnemonicPhrase" value="'+mnemonic+'" disabled>';
+      c=c+'<span class="bi bi-clipboard" id="clipboard"></span>';
+      c=c+'</div>';
+      c=c+'<label for="password" class="form-label">Password</label>'
+      c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input password" id="password" required >';
+      c=c+'<i id="strengthPassword" class="badge displayBadge">Weak</i>';
+      c=c+'<p><small>Minimum 8 chars, upper and lower case letters,numbers and one symbol</small></p>'
+      c=c+'<label for="repeatpassword" class="form-label">Repeat Password</label>'
+      c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input repeatpassword" id="repeatpassword" required >';
+      c=c+'<i id="matchPassword" class="badge displayBadge">Not matching</i>';
+      c=c+'</div></div>';
+      // ask for password to encrypt the secret seed
+      // buttons
+      c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
+      c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
+      c=c+'</div></div>';
+      c=c+'<div class="row"><div class="col-1"></div><div class="col-9"><hr></div></div>';  
+      document.getElementById("root").innerHTML =c;
+      // set the refresh of the signatures at every typing inside the fullname/initials
+      const save=document.getElementById("saveButton");  
+      save.addEventListener('click', save_encryption, false);    
+      const cancel=document.getElementById("cancelButton");  
+      cancel.addEventListener('click', render_drafts, false); 
+      // tab button "Signature"
+      const standardSignature=document.getElementById("standardSignature");
+      standardSignature.addEventListener('click', render_settings, false);   
+      // copy to clipboard the seed phrase
+      const clipboard=document.getElementById("clipboard");
+      clipboard.addEventListener('click', copy_mnemonic_phrase, false);  
+      // password strength check
+      const password=document.getElementById("password");
+      password.addEventListener("input",strengthPassword,false);
+      // password matching check
+      const repeatpassword=document.getElementById("repeatpassword");
+      repeatpassword.addEventListener("input",matchPassword,false);
+  }else{
+      console.log("aj.encryptionkey",aj.encryptionkey);
+      console.log("aj",aj);
+      encryptedprivatekey=base64ToUint8Array(aj.encryptionkey);
+      c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
+      c=c+'<div class="card">';
+      c=c+'<div class="card-body">';
+      c=c+'<h5 class="card-title">Change Password</h5>';
+      c=c+'<p class="card-text">The encryption keys has been already created and stored. You can change the password:</p>';
+      c=c+'<label for="oldpassword" class="form-label">Old Password</label>'
+      c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input oldpassword" id="oldpassword" required >';
+      c=c+'<label for="password" class="form-label">New Password</label>'
+      c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input password" id="password" required >';
+      c=c+'<i id="strengthPassword" class="badge displayBadge">Weak</i>';
+      c=c+'<p><small>Minimum 8 chars, upper and lower case letters,numbers and one symbol</small></p>'
+      c=c+'<label for="repeatpassword" class="form-label">Repeat Password</label>'
+      c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input repeatpassword" id="repeatpassword" required >';
+      c=c+'<i id="matchPassword" class="badge displayBadge">Not matching</i>';
+      c=c+'</div></div>';
+      // ask for password to encrypt the secret seed
+      // buttons
+      c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
+      c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
+      c=c+'</div></div>';
+      c=c+'<div class="row"><div class="col-1"></div><div class="col-9"><hr></div></div>';  
+      document.getElementById("root").innerHTML =c;
+      // set the refresh of the signatures at every typing inside the fullname/initials
+      const save=document.getElementById("saveButton");  
+      save.addEventListener('click', change_password_encryption, false);    
+      const cancel=document.getElementById("cancelButton");  
+      cancel.addEventListener('click', render_drafts, false); 
+      // tab button "Signature"
+      const standardSignature=document.getElementById("standardSignature");
+      standardSignature.addEventListener('click', render_settings, false);   
+      // password strength check
+      const password=document.getElementById("password");
+      password.addEventListener("input",strengthPassword,false);
+      // password matching check
+      const repeatpassword=document.getElementById("repeatpassword");
+      repeatpassword.addEventListener("input",matchPassword,false);
+  }
+  // return false to avoid that click on href are executed
+  return(false); // to avoid that click on href are executed
+}
+// function to encrypt and store at the server side the mnemonic seed
+// the password is never sent to the server. The server acts as password manager.
+async function save_encryption(){
+  await _sodium.ready;
+  const sodium = _sodium;
+  // check password validity
+  const password=document.getElementById("password");
+  const repeatpassword=document.getElementById("repeatpassword");
+  console.log(password.value,repeatpassword.value);
+  if(password.value!=repeatpassword.value){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Password is not matching";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  if(password.length<8){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Password is too short, it must be at least 8 characters";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  const mnemonicPhrase=document.getElementById("mnemonicPhrase").value;
+  // encrypt the mnemonic phrase with the password
+  const encdata=await encrypt_symmetric_stream(mnemonicPhrase,password.value);
+  const encdatab64=uint8ArrayToBase64(encdata);
+  // call the server to execute the storage
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+    privatekey: encdatab64
+  }
+  let url = window.location.protocol + "//" + window.location.host+"/saveprivatekey";
+  url=url+`?${qs.stringify(params)}`;
+  const response = await fetch(url,{method: 'GET',},);
+  let answerJSON = await  response.json();
+  console.log("answerJSON",answerJSON);
+  // check the answer from the server
+  if(answerJSON.answer=='KO'){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+answerJSON.message;
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  //check if the public key is published
+  // compute public key
+  const seedString = mnemonicToMiniSecret(mnemonicPhrase);
+  let keyspair=sodium.crypto_box_seed_keypair(seedString);
+  console.log("keyspair",keyspair);
+  // connect to the node
+  const provider = new WsProvider('wss://testnet.aisland.io');
+  const api = await ApiPromise.create({ provider });
+  // Retrieve the chain & node information information via rpc calls
+  const [chain, nodeName, nodeVersion] = await Promise.all([
+    api.rpc.system.chain(),
+    api.rpc.system.name(),
+    api.rpc.system.version()
+  ]);
+  const publickey = await api.query.docSig.encryptionPublicKeys(currentAccount.address);
+  console.log("Blockchain public key:",publickey);
+  let msg='';
+  if(keyspair.publicKey!=publickey){
+    //store the public key on chain
+    const publickeys=u8aToString(keyspair.publicKey);
+    //console.log("publickeys",publickeys,publickeys.length)
+    const injector = await web3FromSource(currentAccount.meta.source);
+    api.tx.docSig.storePublickey(publickeys).signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
+      if (status.isInBlock) {
+          msg='<div class="alert alert-info" role="alert"><center>';
+          //msg=msg+`Tx Completed at block hash #${status.asInBlock.toString()}`;
+          msg=msg+`Tx has been accepted, finalizing....`;
+          msg=msg+"</center></div>";
+          document.getElementById("msg").innerHTML = msg;
+      } else {
+          msg='<div class="alert alert-info" role="alert"><center>';
+          msg=msg+`Current Tx status: ${status.type}`;
+          msg=msg+"</center></div>";
+          document.getElementById("msg").innerHTML = msg;
+          console.log("status.type",status.type);
+          if(status.type=='Finalized'){
+            render_main('drafts');
+            return;
+          }
+      }
+    }).catch((error) => {
+      msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+` Tx failed: ${error}`;
+      msg=msg+"</center></div>";
+      document.getElementById("msg").innerHTML = msg;
+    });
+  }else{
+    // return to main dashboard on drafts section
+    render_main('drafts');
+    return;
+  }
+}
+//function to change password
+async function change_password_encryption() {
+  await _sodium.ready;
+  const sodium = _sodium;
+  //try to decrypt the private key
+  const oldpassword=document.getElementById("oldpassword").value;
+  if(oldpassword.lenght==0){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Old Password is mandatory";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  const mnemonicPhrase = await decrypt_symmetric_stream(encryptedprivatekey,oldpassword);
+  if(mnemonicPhrase==false){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Old Password is wrong";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  // check password validity
+  const password=document.getElementById("password");
+  const repeatpassword=document.getElementById("repeatpassword");
+  console.log(password.value,repeatpassword.value);
+  if(password.value!=repeatpassword.value){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Password is not matching";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  if(password.length<8){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+"Password is too short, it must be at least 8 characters";
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  // save the private key with the new password
+  // encrypt the mnemonic phrase with the password
+  const encdata=await encrypt_symmetric_stream(mnemonicPhrase,password.value);
+  const encdatab64=uint8ArrayToBase64(encdata);
+  // call the server to execute the storage
+  const params={
+    account: currentAccount.address,
+    token: currentToken,
+    privatekey: encdatab64
+  }
+  let url = window.location.protocol + "//" + window.location.host+"/saveprivatekey";
+  url=url+`?${qs.stringify(params)}`;
+  const response = await fetch(url,{method: 'GET',},);
+  let answerJSON = await  response.json();
+  console.log("answerJSON",answerJSON);
+  // check the answer from the server
+  if(answerJSON.answer=='KO'){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+answerJSON.message;
+    msg=msg+"</center></div>";
+    document.getElementById("msg").innerHTML = msg;
+    return(false);
+  }
+  // show message on top and clean fields
+  let msg='<div class="alert alert-success" role="alert"><center>';
+  msg=msg+'Encryption password has been changed';
+  msg=msg+"</center></div>";
+  document.getElementById("msg").innerHTML = msg;
+  document.getElementById("oldpassword").value='';
+  document.getElementById("password").value='';
+  document.getElementById("repeatpassword").value='';
+  return(false);
+}
+//function to copy the mnemonic phrase to the clipboard
+async function copy_mnemonic_phrase() {
+  let mnemonicPhrase = document.getElementById("mnemonicPhrase").value;
+  await navigator.clipboard.writeText(mnemonicPhrase);
+  const clipboard=document.getElementById("clipboard");
+  clipboard.className="bi bi-clipboard-check";
+}
+// function to check the strength of the password field and update a badge under the password field
+async function strengthPassword(){
+  let password = document.getElementById('password');
+  let strengthPassword = document.getElementById('strengthPassword');
+  // make the badge visible or invisible
+  if(password.value.length !== 0){
+    strengthPassword.style.display = 'block';
+  } else {
+    strengthPassword.style.display = 'none'
+  }
+  let strongPassword = new RegExp('(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})');
+  let mediumPassword = new RegExp('((?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{6,}))|((?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}))');
+  if(strongPassword.test(password.value)) {
+    strengthPassword.style.backgroundColor = "green"
+    strengthPassword.textContent = 'Strong'
+  } else if(mediumPassword.test(password.value)){
+    strengthPassword.style.backgroundColor = 'blue'
+    strengthPassword.textContent = 'Medium'
+  } else{
+    strengthPassword.style.backgroundColor = 'red'
+    strengthPassword.textContent = 'Weak'
+  }
+}
+// function to check the matching of repeat password field with the password
+async function matchPassword(){
+  let password = document.getElementById('password');
+  let repeatpassword = document.getElementById('repeatpassword');
+  let matchPassword = document.getElementById('matchPassword');
+  // make the badge visible or invisible
+  if(repeatpassword.value.length !== 0){
+    matchPassword.style.display = 'block';
+  } else {
+    matchPassword.style.display = 'none'
+  }
+  if(password.value!=repeatpassword.value){
+    matchPassword.style.backgroundColor = 'red'
+    matchPassword.textContent = 'No matching'
+  } else {
+    matchPassword.style.backgroundColor = 'green'
+    matchPassword.textContent = 'Matching'
+  }
 }
 //function to filter the template by tag
 // TODO - check since it's not used
@@ -1312,105 +1660,7 @@ async function enableWeb3() {
       return;
     }
 }
-// function to encrypt a msg by public key and return an encrypted object
-// we compute a shared key of 32 bytes between the sender and recipient (Diffie-Hellman)
-// we use it to encrypt a random key of 64 bytes
-// we make a first encryption by chacha20 with the first 32 bytes of the random key
-// we make a second encryptuon by AES-256-GCM witht the second 32 bytes of the random key
-// the random nonces are generated internally
-// the function return an object with all the nonces used, the public keys involved and the encrypted msg
-// the object can be serialised to store it on blockchain
-async function encrypt_stream(msg,senderprivatekey,senderpublickey,recipientpublickey){
-  //await _sodium.ready;
-  //const sodium = _sodium;
-  // generates random nonce
-  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-  // generates random secret key 64 bytes (it will be used to encrypt the stream)
-  const secretkey=sodium.randombytes_buf(64);
-  //console.log("secretkey",secretkey);
-  // encrypts by x25519
-  const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickey,senderprivatekey);
-  // use the first 32 bytes of the secret key to encrypt the msg by chacha algorithm
-  const secretkeychacha=secretkey.slice(0,32);
-  // generate a nonce for chacha20 192 bit as required from the algorithm
-  const noncechacha = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-  const encmsgchacha=sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(msg,null,null,noncechacha,secretkeychacha);
-  // encrypt by AES-256 gcm
-  //generate nonce for AES 96 bit as required from the algorithm
-  const nonceaes=sodium.randombytes_buf(12);
-  // get secret key for Aes - 256 bit
-  const secretkeyaes=secretkey.slice(32);
-  // set the algorithm
-  const alg = { name: 'AES-GCM', iv: nonceaes };
-  // import the key
-  const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
-  // encrypt the output of chacha
-  const encmsgaesb=  await window.crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
-  const encmsgaes=new Uint8Array(encmsgaesb);
-  let result={
-    nonce25519: nonce,
-    encsecret25519: encsecretkey,
-    senderpublickey: senderpublickey,
-    recipientpublickey: recipientpublickey,
-    noncechacha: noncechacha,
-    nonceaes: nonceaes,
-    encmsg: encmsgaes
-    //encmsgchacha: encmsgchacha,
-    //nonceaes: nonceaes,
-    //encmsgaes: encmsgaes
-  };
-  // return encrypted object serialized with msgpackr wich is quite compact, in json would create a much bigger blob
-  return(pack(result));
-}
-// function to decrypt a msg and return an Uin8array with the clear message (private/public keys belongs to the party wishing to decrypt)
-async function decrypt_stream(encmsgb,privatekey,publickey){
-    // deserialize the encrypted object
-    const encmsg=unpack(encmsgb);
-    // wait for sodium available
-    //await _sodium.ready;
-    //const sodium = _sodium;
-    // select the public key of the counter part
-    let pk='';
-    if( encmsg.senderpublickey==publickey)
-        pk=encmsg.recipientpublickey
-    else
-        pk=encmsg.senderpublickey
-    // decrypt the secret key from the public key encryption
-    let secretkey=sodium.crypto_box_open_easy(encmsg.encsecret25519,encmsg.nonce25519,pk,privatekey);
-    let secretkeychacha=secretkey.slice(0,32);
-    let secretkeyaes=secretkey.slice(32);
-    // decrypt first layer by AES-GCM
-    const alg = { name: 'AES-GCM', iv: encmsg.nonceaes };
-    // import the key
-    const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
-    //decryption  by AESGCM
-    const encmsgchachab=  await window.crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
-    const encmsgchacha = new Uint8Array(encmsgchachab);
-    // decryption second layer by Chacha20
-    let result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
-    return(result);
-  }
 
-  // utility function to convert bytes to hex 
-  function bytestohex(bytes) {
-    var hexstring='', h;
-    for(var i=0; i<bytes.length; i++) {
-        h=bytes[i].toString(16);
-        if(h.length==1) { h='0'+h; }
-        hexstring+=h;
-    }   
-    return hexstring;
-  }
-  // utility function to read cookie value
-  function getCookie(name){
-    var pattern = RegExp(name + "=.[^;]*");
-    var matched = document.cookie.match(pattern);
-    if(matched){
-        var cookie = matched[0].split('=');
-        return cookie[1];
-    }
-    return '';
-}
 // render the signature with different type of fonts
 // from global vars
 async function render_signatures() {
@@ -1455,11 +1705,13 @@ async function render_signatures() {
         break;
     }
   }
-  // TODO - manage the storage in case of file upload
-  if(radio.value=="file"){
-
+  console.log("radio.value",radio.value);
+  let fontname='';
+  if(radio.value=="fileupload"){
+    fontname="SCANNED"
+  }else{
+    fontname=fonts[radio.value];
   }
-  const fontname=fonts[radio.value];
   console.log(fullname,initials,fontname);
   // call the server to execute the storage
   const params={
@@ -1482,15 +1734,71 @@ async function render_signatures() {
     document.getElementById("msg").innerHTML = msg;
     return(false);
   }
+  // save scanned images if present
+  await upload_image_signature();
+  await upload_image_initials();
   //back to main UI
   render_drafts();
  }
-
- //function to upload the signature image
- async function upload_image_signature() {
+//function to preview the signature image
+async function preview_signature() {
   let signaturefile=document.getElementById("signaturefile");
   // check if the file is selected
   if(signaturefile.length==0)
+    return;
+  // check for file extension
+  const fn=signaturefile.files[0].name;
+  const extension=fn.slice(-4).toLowerCase();
+  if(extension!=".png" && extension!=".jpg" && extension!=".jpeg"){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+'Wrong file format, you can upload only .png or .jpg/.jpeg files';
+    msg=msg+"</center></div>"; 
+    document.getElementById("msg").innerHTML =msg;
+    return;
+  }
+  //preview signature 
+  let previewSignature=document.getElementById("previewSignature");
+  if (signaturefile.files && signaturefile.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      previewSignature.src = e.target.result;
+      previewSignature.hidden=false;
+    }
+    reader.readAsDataURL(signaturefile.files[0]);
+  }
+ }
+ //function to preview the signature image
+async function preview_initials() {
+  let initialsfile=document.getElementById("initialsfile");
+  // check if the file is selected
+  if(initialsfile.length==0)
+    return;
+  // check for file extension
+  const fn=initialsfile.files[0].name;
+  const extension=fn.slice(-4).toLowerCase();
+  if(extension!=".png" && extension!=".jpg" && extension!=".jpeg"){
+    let msg='<div class="alert alert-danger" role="alert"><center>';
+    msg=msg+'Wrong file format, you can upload only .png or .jpg/.jpeg files';
+    msg=msg+"</center></div>"; 
+    document.getElementById("msg").innerHTML =msg;
+    return;
+  }
+  //preview signature 
+  let previewInitials=document.getElementById("previewInitials");
+  if (initialsfile.files && initialsfile.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      previewInitials.src = e.target.result;
+      previewInitials.hidden=false;
+    }
+    reader.readAsDataURL(initialsfile.files[0]);
+  }
+ }
+ //function to upload the signature image
+async function upload_image_signature() {
+  let signaturefile=document.getElementById("signaturefile");
+  // check if the file is selected
+  if(signaturefile.files.length==0)
     return;
   // check for file extension
   const fn=signaturefile.files[0].name;
@@ -1517,16 +1825,6 @@ async function render_signatures() {
     console.log("answerJSON",answerJSON);
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
-      //preview signature signature
-      let previewSignature=document.getElementById("previewSignature");
-      if (signaturefile.files && signaturefile.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          previewSignature.src = e.target.result;
-          previewSignature.hidden=false;
-        }
-        reader.readAsDataURL(signaturefile.files[0]);
-      }
       return;
     }else {
       console.log("Upload has NOT been completed",answerJSON);
@@ -1551,7 +1849,7 @@ async function render_signatures() {
  async function upload_image_initials() {
   let initialsfile=document.getElementById("initialsfile");
   // check if the file is selected
-  if(initialsfile.length==0)
+  if(initialsfile.files.length==0)
     return;
   // check for file extension
   const fn=initialsfile.files[0].name;
@@ -1578,16 +1876,6 @@ async function render_signatures() {
     console.log("answerJSON",answerJSON);
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
-      //preview signature signature
-      let previewInitials=document.getElementById("previewInitials");
-      if (initialsfile.files && initialsfile.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          previewInitials.src = e.target.result;
-          previewInitials.hidden=false;
-        }
-        reader.readAsDataURL(initialsfile.files[0]);
-      }
       return;
     }else {
       console.log("Upload has NOT been completed",answerJSON);
@@ -1608,3 +1896,219 @@ async function render_signatures() {
    });
   return;
  }
+  // utility function to convert bytes to hex 
+  function bytestohex(bytes) {
+    var hexstring='', h;
+    for(var i=0; i<bytes.length; i++) {
+        h=bytes[i].toString(16);
+        if(h.length==1) { h='0'+h; }
+        hexstring+=h;
+    }   
+    return hexstring;
+  }
+  // utility function to read cookie value
+  function getCookie(name){
+    var pattern = RegExp(name + "=.[^;]*");
+    var matched = document.cookie.match(pattern);
+    if(matched){
+        var cookie = matched[0].split('=');
+        return cookie[1];
+    }
+    return '';
+}
+// function to encrypt a msg by public key and return an encrypted object
+// the msg data type is Uint8Array, to support text or binary data
+// it computes a shared key of 32 bytes between the sender and recipient (Diffie-Hellman)
+// The shared key is used to encrypt a random key of 64 bytes.
+// It makes a first encryption by chacha20 with the first 32 bytes of the random key.
+// It makes a second encryption by AES-256-GCM witht the second 32 bytes of the random key
+// the random nonces are generated internally
+// the function returns an object with all the nonces used, the public keys involved and the encrypted msg
+// the object can be serialised to store it on th blockchain
+async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,recipientpublickey){
+  await _sodium.ready;
+  const sodium = _sodium;
+  // generates random nonce
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  // generates random secret key 64 bytes (it will be used to encrypt the stream)
+  const secretkey=sodium.randombytes_buf(64);
+  //console.log("secretkey",secretkey);
+  // encrypts by x25519
+  const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickey,senderprivatekey);
+  // use the first 32 bytes of the secret key to encrypt the msg by chacha algorithm
+  const secretkeychacha=secretkey.slice(0,32);
+  // generate a nonce for chacha20 (24 bytes)
+  const noncechacha = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+  const encmsgchacha=sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(msg,null,null,noncechacha,secretkeychacha);
+  // encrypt by AES-256 gcm
+  //generate nonce for aes
+  const nonceaes=sodium.randombytes_buf(12);
+  // get secret key for Aes
+  const secretkeyaes=secretkey.slice(32);
+  // set the algorithm
+  const alg = { name: 'AES-GCM', iv: nonceaes };
+  // import the key
+  const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
+  // encrypt the output of chacha
+  const encmsgaesb=  await crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
+  const encmsgaes=new Uint8Array(encmsgaesb);
+  let result={
+    nonce25519: nonce,
+    encsecret25519: encsecretkey,
+    senderpublickey: senderpublickey,
+    recipientpublickey: recipientpublickey,
+    noncechacha: noncechacha,
+    nonceaes: nonceaes,
+    encmsg: encmsgaes
+    //encmsgchacha: encmsgchacha,
+    //nonceaes: nonceaes,
+    //encmsgaes: encmsgaes
+  };
+  // return encrypted object serialized with msgpackr
+  return(pack(result));
+}
+// function to decrypt a msg and return an Uin8array with the clear message (private/public keys belongs to the party wishing to decrypt)
+async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
+    // deserialize the encrypted object
+    const encmsg=unpack(encmsgb);
+    // wait for sodium available
+    await _sodium.ready;
+    const sodium = _sodium;
+    // select the public key of the counter part
+    let pk='';
+    if( encmsg.senderpublickey==publickey)
+        pk=encmsg.recipientpublickey
+    else
+        pk=encmsg.senderpublickey
+    // decrypt the secret key from the public key encryption
+    let secretkey=sodium.crypto_box_open_easy(encmsg.encsecret25519,encmsg.nonce25519,pk,privatekey);
+    let secretkeychacha=secretkey.slice(0,32);
+    let secretkeyaes=secretkey.slice(32);
+    // decrypt first layer by AES-GCM
+    const alg = { name: 'AES-GCM', iv: encmsg.nonceaes };
+    // import the key
+    const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
+    //decryption  by AESGCM
+    const encmsgchachab=  await crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
+    const encmsgchacha = new Uint8Array(encmsgchachab);
+    // decryption second layer by Chacha20
+    let result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
+    return(result);
+  }
+// function to encrypt a msg by password using symmetric encryption
+// the msg data type is Uint8Array, to support text or binary data
+// it derive the encryption keys from the supplied password
+// It makes a first encryption by chacha20 with the first 32 bytes of the random key.
+// It makes a second encryption by AES-256-GCM witht the second 32 bytes of the random key
+// the random nonces are generated internally
+// the function returns an object with all the nonces used, involved and the encrypted msg
+// the object can be serialised to store it on th blockchain
+async function encrypt_symmetric_stream(msg,password){
+  await _sodium.ready;
+  const sodium = _sodium;
+  // secure derivation of 2 keys of 32 bytes + salt 16 byte (salt is random so the result is different)
+  const key1=await derive_key_from_password(password);
+  const key2=await derive_key_from_password(password);
+  // generate random nonce for AES AND CHACHA
+  const nonceaes = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  const noncechacha = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+  // get derive secret key and random salt
+  const secretkeychacha=key1[0];
+  const saltchacha=key1[1];
+  const secretkeyaes=key2[0];
+  const saltaes=key2[1];
+  //encrypt msg by chacha
+  const encmsgchacha=sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(msg,null,null,noncechacha,secretkeychacha);
+  // encrypt by AES-256 gcm
+  // set the algorithm
+  const alg = { name: 'AES-GCM', iv: nonceaes };
+  // import the key
+  const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
+  // encrypt the output of chacha
+  const encmsgaesb=  await crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
+  const encmsgaes=new Uint8Array(encmsgaesb);
+  let result={
+    saltchacha:saltchacha,
+    saltaes:saltaes,
+    noncechacha: noncechacha,
+    nonceaes: nonceaes,
+    encmsg: encmsgaes
+  };
+  // return encrypted object serialized with msgpackr
+  return(pack(result));
+}
+async function decrypt_symmetric_stream(encmsgb,password){
+  // deserialize the encrypted object
+  const encmsg=unpack(encmsgb);
+  // wait for sodium available
+  await _sodium.ready;
+  const sodium = _sodium;
+  // get keys salt
+  const saltchacha=encmsg.saltchacha;
+  const saltaes=encmsg.saltaes;
+  const key1=await derive_key_from_password(password,saltchacha);
+  const key2=await derive_key_from_password(password,saltaes);
+  // get derived secret keys
+  const secretkeychacha=key1[0];
+  const secretkeyaes=key2[0];
+  // decrypt first layer by AES-GCM
+  const alg = { name: 'AES-GCM', iv: encmsg.nonceaes };
+  // import the key
+  let tmpkeyaes;
+  try {
+    tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
+  } catch(e) {
+    return(false);
+  }
+  //decryption  by AESGCM
+  let encmsgchachab;
+  try {
+    encmsgchachab=  await crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
+  } catch(e) {
+    return(false);
+  }
+  const encmsgchacha = new Uint8Array(encmsgchachab);
+  // decryption second layer by Chacha20
+  let result;
+  try {
+    result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
+  } catch(e) {
+    return(false);
+  }
+  return(result);
+}
+
+// function to derive a secure key from a password
+// it returns a 32 bytes key
+async function derive_key_from_password(password,salt){
+  await _sodium.ready;
+  const sodium = _sodium;
+  let randomsalt=sodium.randombytes_buf(16);
+  if(typeof salt!='undefined'){
+    randomsalt=salt;
+  }
+  const key = _sodium.crypto_pwhash(
+      _sodium.crypto_box_SEEDBYTES,
+      password,
+      randomsalt,
+      _sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+      _sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+      _sodium.crypto_pwhash_ALG_DEFAULT,
+  );
+  return([key,randomsalt]);
+}
+
+// function to convert Uint8Array to base64
+function uint8ArrayToBase64(uint8Array) {
+  const binaryString = uint8Array.reduce((acc, value) => acc + String.fromCharCode(value), '');
+  return btoa(binaryString);
+}
+// function to convert base64 to Uint8Array
+function base64ToUint8Array(base64String) {
+  const binaryString = atob(base64String);
+  const uint8Array = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    uint8Array[i] = binaryString.charCodeAt(i);
+  }
+  return uint8Array;
+}

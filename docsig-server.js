@@ -1,4 +1,4 @@
-// Docusign Server
+// docSig Server
 const express = require('express');
 const cookieParser = require("cookie-parser");
 let fs=require("fs");
@@ -48,7 +48,7 @@ if (typeof DB_PWD === 'undefined') {
     process.exit(1);
 }
 
-console.log("Docusign Server - v.1.00");
+console.log("docSig Server - v.1.00");
 console.log("Listening on port tcp/3000 ....");
 mainloop();
 // main body
@@ -1313,7 +1313,7 @@ async function mainloop(){
             console.log('returning back');
             return;
         }
-        // make query for  documents (sql injection is managed)
+        // make query (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from scannedsignatures where account=? and type=?",[account,type]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"scanned signature not found for the account"}';
@@ -1349,7 +1349,123 @@ async function mainloop(){
             }
         });
     });
-    
+    // get the private key ED25519 used to encrypt/decrypt documents
+    app.get('/getprivatekey', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request getprivatekey");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request getprivatekey");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        let connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end()
+            console.log('returning back');
+            return;
+        }
+        // make query for   (sql injection is managed)
+        const [rows, fields] = await connection.execute("select * from users where account=?",[account]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"something is wrong, user not found"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end();
+            return;
+        }
+        const answer={
+            encryptionkey: rows[0].encryptionkey,
+        }
+        const as=JSON.stringify(answer);
+        console.log("Sending Answer:",as);
+        res.send(as);
+        connection.end();
+        return;
+        
+    });
+    // save the private key ED25519 used to encrypt/decrypt documents
+    app.get('/saveprivatekey', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        const privatekey=req.query.privatekey;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request saveprivatekey");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request saveprivatekey");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check privatekey
+        if(typeof privatekey ==='undefined'){
+            console.log("ERROR: Missing privatekey in request saveprivatekey");
+            const answer='{"answer":"KO","message":"privatekey is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        let connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end()
+            console.log('returning back');
+            return;
+        }
+        // make query for   (sql injection is managed)
+        const [rows, fields] = await connection.execute("select * from users where account=?",[account]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"something is wrong, user not found"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end();
+            return;
+        }
+        await connection.execute("update users set encryptionkey=? where account=?",[privatekey,account]);
+        const answer='{"answer":"OK","message":"Private key has been saved"}';
+        console.log("Sending Answer:",answer);
+        res.send(answer);
+        connection.end();
+        return;
+        
+    });
+
     // various upload functions are grouped here
     // manage signature upload
     app.post("/uploadsignature", upload.array("files"), uploadsignature);
@@ -1427,8 +1543,9 @@ async function check_token_validity(token,account,connection){
 //functiont to update the status
 async function update_status_documents_drafts(account,connection){
     const [rows, fields] = await connection.execute("select * from documents where account=? and status='draft'",[account]);
+    console.log(rows);
     for(let i=0;i<rows.length;i++){
-        const hash = await api.query.docuSign.documents(account,rows[i].id);
+        const hash = await api.query.docSig.documents(account,rows[i].id);
         const hashstring=`${hash}`
         //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
@@ -1444,14 +1561,14 @@ async function update_status_documents_waiting(account,connection){
     const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=?) and status='waiting'",[account,account]);
     console.log("record found: ",rows.length);
     for(let i=0;i<rows.length;i++){
-        let hash = await api.query.docuSign.signatures(account,rows[i].id);
+        let hash = await api.query.docSig.signatures(account,rows[i].id);
         let hashstring=`${hash}`
         //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
             console.log("Status changed to 'completed' for document id:",rows[i].id);
         }
-        hash = await api.query.docuSign.signatures(rows[i].counterpart,rows[i].id);
+        hash = await api.query.docSig.signatures(rows[i].counterpart,rows[i].id);
         hashstring=`${hash}`
         //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
