@@ -144,7 +144,8 @@
             <tr><td>Description</td><td id="docsigndescription"></td></tr>
             <tr><td>File Name</td><td id="docsignfilename"></td></tr>
             <tr><td>Size</td><td id="docsignsize"></td></tr>
-            <tr><td>CounterParts:</td><td id="docsigncounterparts"></td></tr>
+            <tr><td>Your Account:</td><td id="docsignmycounterpart"></td></tr>
+            <tr><td>Counterpart:</td><td id="docsigncounterpart"></td></tr>
         </table>
         <button class="btn btn-outline-primary" id="docsignsign"><i class="bi bi-vector-pen"></i> Sign</button>
         <button class="btn btn-outline-info" id="docsignview"><i class="bi bi-eye"></i>  View</button>
@@ -154,13 +155,4 @@
       </div>
     </div>
   </div>
-  <script>
-    // test sodium loading
-    window.sodium = {
-        onload: function (sodium) {
-            let h = sodium.crypto_generichash(64, sodium.from_string('test'));
-            console.log("sodium: ",sodium.to_hex(h));
-        }
-    };
-</script>
 </html>

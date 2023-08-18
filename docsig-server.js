@@ -977,13 +977,13 @@ async function mainloop(){
         // check documentaccount
         if(typeof documentaccount ==='undefined'){
             console.log("ERROR: Missing documentaccount in request updatedocumentcounterpart");
-            const answer='{"answer":"KO","message":"description is mandatory"}';
+            const answer='{"answer":"KO","message":"documentaccount is mandatory"}';
             res.send(answer);
             return;
         }
         if(documentaccount.length==0){
             console.log("ERROR: Missing documentaccount in request updatedocumentcounterpart");
-            const answer='{"answer":"KO","message":"description is mandatory"}';
+            const answer='{"answer":"KO","message":"documentaccount is mandatory"}';
             res.send(answer);
             return;
         }
@@ -1003,8 +1003,9 @@ async function mainloop(){
             return;
         }
         // update the counterpart field
-        const [rows, fields] = await connection.execute("update documents set counterpart=? where account=? and id=?",[account,documentaccount,documentid]);
+        await connection.execute("update documents set counterpart=? where account=? and id=?",[documentaccount,account,documentid]);
         const answer='{"answer":"OK","message":"counterpart has been updated"}';
+        //console.log(answer,account,documentaccount,documentid)
         res.send(answer);
         connection.close();
         return;

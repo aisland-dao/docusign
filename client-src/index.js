@@ -5,15 +5,18 @@ import NestedList from '@editorjs/nested-list';
 import Underline from '@editorjs/underline';
 import Strikethrough from '@sotaproject/strikethrough';
 
+//from polkadot.js
 const { ApiPromise, WsProvider } = require('@polkadot/api');
-const { u8aToString } = require('@polkadot/util');
+const { u8aToString,hexToU8a, isHex } = require('@polkadot/util');
+const { decodeAddress, encodeAddress } = require('@polkadot/keyring');
+//for encryption/decryption
+const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+//from editor.js
 const Header = require("editorjs-header-with-alignment");
 const Quote = require('@editorjs/quote');
 const Delimiter = require('@editorjs/delimiter');
 const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
-//for encryption/decryption
-const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
 const _sodium =require('libsodium-wrappers-sumo');
 //for binary serialization
 const { unpack, pack } = require('msgpackr');
@@ -196,8 +199,11 @@ document.getElementById("docsign").onclick = async () => {
     const s=sn.toLocaleString('en-US');
     document.getElementById("docsignsize").innerHTML = s+" kb";
     let ac=docdata.account;
-    ac=ac.substr(0,5)+"..."+ac.substr(43);
-    document.getElementById("docsigncounterparts").innerHTML = ac;
+    ac=ac.substr(0,6)+"..."+ac.substr(42);
+    document.getElementById("docsignmycounterpart").innerHTML = ac;
+    // add field for counterpart account (we need it now to encrypt the document for the counterpart)
+    let cp='<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="'+docdata.counterpart+'" required >';  
+    document.getElementById("docsigncounterpart").innerHTML = cp;
     document.getElementById("docsignmsg").innerHTML ="";
     // show the signing modal
     signDocumentModal.show();
@@ -375,26 +381,45 @@ document.getElementById("docsignsign").onclick = async () => {
             return;
         }
     }
-    if(currentAccount.address!=docdata.account){
-        //update counterpart on the document table
-        const params ={
-          account: currentAccount.address,
-          token: currentToken,
-          documentaccount: docdata.account,
-          documentid: currentDocumentId,
-        }
-        let url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
-        const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
-        let answerJSON = await  response.json();
-        console.log("answerJSON: ", answerJSON);
-        if(answerJSON.answer=='KO'){
-          let msg='<div class="alert alert-danger" role="alert"><center>';
-          msg=msg+answerJSON.message;
-          msg=msg+"</center></div>";
-          document.getElementById("msg").innerHTML = msg;
-          return;
-        }
-   }
+    //check for counterpart address
+    let counterpart=document.getElementById("counterpart").value;
+    // verify the validity of the counterpart address
+    if(!isValidAddress(counterpart)){
+      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg=msg+"Counterpart address is not valid";
+      msg=msg+"</center></div>";
+      document.getElementById("docsignmsg").innerHTML = msg;
+      return;
+    }
+    // verify the counterpart is different from the document account
+    if(counterpart==docdata.account){
+      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg=msg+"Counterpart address must be different from the document creator";
+      msg=msg+"</center></div>";
+      document.getElementById("docsignmsg").innerHTML = msg;
+      return;
+    }
+    
+    //update counterpart on the document table
+    const params ={
+      account: docdata.account,
+      token: currentToken,
+      documentaccount: counterpart,
+      documentid: currentDocumentId,
+    }
+    console.log("params",params)
+    let url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
+    const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    console.log("answerJSON: ", answerJSON);
+    if(answerJSON.answer=='KO'){
+      let msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+answerJSON.message;
+      msg=msg+"</center></div>";
+      document.getElementById("msg").innerHTML = msg;
+      return;
+    }
+   
     //sign the document
     let signdocument;
     console.log()
@@ -1383,7 +1408,7 @@ async function render_encryption(){
       c=c+'<div class="card">';
       c=c+'<div class="card-body">';
       c=c+'<h5 class="card-title">Change Password</h5>';
-      c=c+'<p class="card-text">The encryption keys has been already created and stored. You can change the password:</p>';
+      c=c+'<p class="card-text">The encryption keys has been already created and stored. You can change their password:</p>';
       c=c+'<label for="oldpassword" class="form-label">Old Password</label>'
       c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input oldpassword" id="oldpassword" required >';
       c=c+'<label for="password" class="form-label">New Password</label>'
@@ -2111,4 +2136,17 @@ function base64ToUint8Array(base64String) {
     uint8Array[i] = binaryString.charCodeAt(i);
   }
   return uint8Array;
+}
+//function to validate substrate address
+function isValidAddress(address){
+  try {
+      encodeAddress(
+        isHex(address)
+          ? hexToU8a(address)
+          : decodeAddress(address)
+      );
+      return true;
+    } catch (error) {
+      return false;
+  }
 }
