@@ -1,4 +1,4 @@
-import { web3Accounts, web3Enable, web3FromSource,isWeb3Injected } from '@polkadot/extension-dapp';
+import { web3Accounts, web3Enable, web3FromAddress,isWeb3Injected } from '@polkadot/extension-dapp';
 import qs from 'qs';
 import EditorJS from '@editorjs/editorjs'; 
 import NestedList from '@editorjs/nested-list';
@@ -7,10 +7,12 @@ import Strikethrough from '@sotaproject/strikethrough';
 
 //from polkadot.js
 const { ApiPromise, WsProvider } = require('@polkadot/api');
-const { u8aToString,hexToU8a, isHex } = require('@polkadot/util');
+const { u8aToString,hexToU8a,u8aToHex, isHex, stringToU8a } = require('@polkadot/util');
 const { decodeAddress, encodeAddress } = require('@polkadot/keyring');
 //for encryption/decryption
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+const { Keyring }=require('@polkadot/keyring');
+
 //from editor.js
 const Header = require("editorjs-header-with-alignment");
 const Quote = require('@editorjs/quote');
@@ -39,7 +41,7 @@ let signaturetoken='';
 // check for token in session
 const sessionToken=window.sessionStorage.getItem("currentToken");
 const sessionAccount=window.sessionStorage.getItem("currentAccount");
-console.log(sessionAccount);
+//console.log(sessionAccount);
 if(sessionToken != null)
   currentToken=sessionToken;
 if(sessionAccount != null){
@@ -47,7 +49,11 @@ if(sessionAccount != null){
   render_main('drafts');
 }
 // enable web3 functions, it's a call required
-enableWeb3()
+await enableWeb3()
+// enable tooltip
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
 // Here we set the actions of the different menu/buttons/links
 // connect wallet button
 document.getElementById("connect").onclick = () => {
@@ -330,6 +336,8 @@ document.getElementById("docsignview").onclick = () => {
 // actions on documents
 // document sign
 document.getElementById("docsignsign").onclick = async () => {
+  await _sodium.ready;
+  const sodium = _sodium;
   if(currentDocumentId>0){
     let docdata=get_document_data(currentDocumentId);
     // info message
@@ -351,7 +359,8 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
     console.log("currentAccount",currentAccount);
-    const injector = await web3FromSource(currentAccount.meta.source);
+    //const injector = await web3FromSource(currentAccount.meta.source);
+    const injector = await web3FromAddress(currentAccount.address);
     console.log("docdata",docdata);
     if(currentAccount.address==docdata.account){
         //check for document already signed
@@ -360,7 +369,7 @@ document.getElementById("docsignsign").onclick = async () => {
         //console.log("hash",hash);
         //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
-            msg='<div class="alert alert-warning" role="alert"><center>';
+            msg='<div class="alert alert-danger" role="alert"><center>';
             msg=msg+"Document already signed";
             msg=msg+"</center></div>";
             document.getElementById("docsignmsg").innerHTML = msg;
@@ -374,7 +383,7 @@ document.getElementById("docsignsign").onclick = async () => {
         //console.log("hash",hash);
         //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
-            msg='<div class="alert alert-warning" role="alert"><center>';
+            msg='<div class="alert alert-danger" role="alert"><center>';
             msg=msg+"Document already signed";
             msg=msg+"</center></div>";
             document.getElementById("docsignmsg").innerHTML = msg;
@@ -385,7 +394,7 @@ document.getElementById("docsignsign").onclick = async () => {
     let counterpart=document.getElementById("counterpart").value;
     // verify the validity of the counterpart address
     if(!isValidAddress(counterpart)){
-      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg='<div class="alert alert-danger" role="alert"><center>';
       msg=msg+"Counterpart address is not valid";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
@@ -393,22 +402,75 @@ document.getElementById("docsignsign").onclick = async () => {
     }
     // verify the counterpart is different from the document account
     if(counterpart==docdata.account){
-      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg='<div class="alert alert-danger" role="alert"><center>';
       msg=msg+"Counterpart address must be different from the document creator";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
       return;
     }
+    // verify the counterpart has published the public key for encryption
+    // the public key is published when the account configure the encryption password and sign the transaction for such purpose.
+    let publickeyCounterpart = (await api.query.docSig.encryptionPublicKeys(counterpart)).toHuman();
+    if(publickeyCounterpart.length==0){
+      msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+"Counterpart has not yet published the public key, he/she should configure the encryption";
+      msg=msg+"</center></div>";
+      document.getElementById("docsignmsg").innerHTML = msg;
+      return;
+    }
+    publickeyCounterpart=hexToU8a(publickeyCounterpart);
+
     
+    // get encryption private key (which is encrypted against a password)
+    // the encrypted private key is stored on the server for data exchange between browsers
+    // the password is used on the client side without visibility from the server
+    let params ={
+      account: docdata.account,
+      token: currentToken,
+    }
+    let url = window.location.protocol + "//" + window.location.host+"/getprivatekey";
+    const responsek = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+    let answerJSONk = await  responsek.json();
+    let flagpk=true
+    if (answerJSONk.answer=="KO" || typeof answerJSONk.encryptionkey==='undefined')
+      flagpk=false
+    if(flagpk){
+      if(answerJSONk.encryptionkey.length==0)
+        flagpk=false;
+    }
+    if(!flagpk){
+      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg=msg+"Please configure the ENCRYPTION PASSWORD from \"Settings\"";
+      msg=msg+"</center></div>";
+      document.getElementById("docsignmsg").innerHTML = msg;
+      return;
+    }
+    // 
+    encryptedprivatekey=base64ToUint8Array(answerJSONk.encryptionkey);
+    console.log("encryptedprivatekey",encryptedprivatekey);
+    const password=document.getElementById("password").value;
+    // decrypt secret phrase using the supplied password
+    let mnemonicPhrase=await decrypt_symmetric_stream(encryptedprivatekey,password);
+    //convert array buffer to string
+    mnemonicPhrase=arrayBufferToString(mnemonicPhrase);
+    console.log("mnemonicPhrase",mnemonicPhrase);
+    // check if the password worked
+    if(mnemonicPhrase.length==0){
+      msg='<div class="alert alert-warning" role="alert"><center>';
+      msg=msg+"Encryption Password is wrong";
+      msg=msg+"</center></div>";
+      document.getElementById("docsignmsg").innerHTML = msg;
+      return;
+    }
     //update counterpart on the document table
-    const params ={
+    params ={
       account: docdata.account,
       token: currentToken,
       documentaccount: counterpart,
       documentid: currentDocumentId,
     }
     console.log("params",params)
-    let url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
+    url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
     console.log("answerJSON: ", answerJSON);
@@ -419,13 +481,53 @@ document.getElementById("docsignsign").onclick = async () => {
       document.getElementById("msg").innerHTML = msg;
       return;
     }
-   
     //sign the document
     let signdocument;
-    console.log()
+    let blob;
+    // check if the first signer or not
     if(currentAccount.address==docdata.account){
-      // proceed with the signature
-      signdocument=api.tx.docSig.newDocument(currentDocumentId,'0x'+docdata.hash);
+      // check for selected storage on blockchain
+      if(document.getElementById("storageblockchain").checked){
+        // get the document blob
+        const params={
+          account: currentAccount.address,
+          token: currentToken,
+          documentid: currentDocumentId
+        };  
+        let url = window.location.protocol + "//" + window.location.host+"/docdownload";
+        url=url+`?${qs.stringify(params)}`;
+        try {
+          const response = await fetch(url);
+          blob = await response.blob();
+        } catch(e) {
+          msg='<div class="alert alert-danger" role="alert"><center>';
+          msg=msg+"Document cannot be read, something is wrong";
+          msg=msg+"</center></div>";
+          document.getElementById("docsignmsg").innerHTML = msg;
+          return;
+        }
+        //read blob file in arra buffer
+        let ab =await blob.arrayBuffer();
+        ab =new Uint8Array(ab);
+        // generate the key pair
+        const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
+        const keyspair= sodium.crypto_box_seed_keypair(seedkeys);
+        //console.log("keyspair",keyspair);
+        //console.log("publickeyCounterpart",publickeyCounterpart);
+        // encrypt the binary data
+        const encryptedab=await encrypt_asymmetric_stream(ab,keyspair.privateKey,keyspair.publicKey,publickeyCounterpart);
+        const blobb64=arrayBufferToBase64(encryptedab);
+        //console.log("blobb64",blobb64);
+        // use utility pallet to store the document and sign the hash in one call
+        const txs = [
+          api.tx.docSig.newDocument(currentDocumentId,'0x'+docdata.hash),
+          api.tx.docSig.newBlob(currentDocumentId, 1,blobb64)
+        ];
+        signdocument=api.tx.utility.batch(txs);
+      }else {
+        // proceed with the signature with the straight call to sign the hash
+        signdocument=api.tx.docSig.newDocument(currentDocumentId,'0x'+docdata.hash);
+      }
     }else{
       signdocument=api.tx.docSig.signDocument(currentDocumentId,'0x'+docdata.hash);
     }
@@ -543,7 +645,8 @@ async function connectWallet(){
     let token=bytestohex(window.crypto.getRandomValues(new Uint8Array(32)));
     //console.log("token:",token);
     // finds an injector for an address
-    const injector = await web3FromSource(currentAccount.meta.source);
+    //const injector = await web3FromSource(currentAccount.meta.source);
+    const injector = await web3FromAddress(currentAccount.address);
     const signRaw = injector?.signer?.signRaw;
     if (!!signRaw) {
       // after making sure that signRaw is defined
@@ -1402,13 +1505,13 @@ async function render_encryption(){
       repeatpassword.addEventListener("input",matchPassword,false);
   }else{
       console.log("aj.encryptionkey",aj.encryptionkey);
-      console.log("aj",aj);
+      //console.log("aj",aj);
       encryptedprivatekey=base64ToUint8Array(aj.encryptionkey);
       c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
       c=c+'<div class="card">';
       c=c+'<div class="card-body">';
       c=c+'<h5 class="card-title">Change Password</h5>';
-      c=c+'<p class="card-text">The encryption keys has been already created and stored. You can change their password:</p>';
+      c=c+'<p class="card-text">The encryption keys have been already created and safely stored. You can change their password:</p>';
       c=c+'<label for="oldpassword" class="form-label">Old Password</label>'
       c=c+'<input class="form-control" type="password" placeholder="" aria-label="default input oldpassword" id="oldpassword" required >';
       c=c+'<label for="password" class="form-label">New Password</label>'
@@ -1509,10 +1612,13 @@ async function save_encryption(){
   let msg='';
   if(keyspair.publicKey!=publickey){
     //store the public key on chain
-    const publickeys=u8aToString(keyspair.publicKey);
-    //console.log("publickeys",publickeys,publickeys.length)
-    const injector = await web3FromSource(currentAccount.meta.source);
-    api.tx.docSig.storePublickey(publickeys).signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
+    const publickeys=u8aToHex(keyspair.publicKey);
+    console.log("publickeys",publickeys,publickeys.length)
+    //const injector = await web3FromSource(currentAccount.meta.source);
+    const injector = await web3FromAddress(currentAccount.address);
+    //console.log("injector",injector);
+    //console.log("api",api);
+    await api.tx.docSig.storePublickey(publickeys).signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
       if (status.isInBlock) {
           msg='<div class="alert alert-info" role="alert"><center>';
           //msg=msg+`Tx Completed at block hash #${status.asInBlock.toString()}`;
@@ -1674,6 +1780,8 @@ function tagfilter(evt){
 async function enableWeb3() {
     let allInjected = await web3Enable('docusign.aisland.io')
     //console.log("allInjected",allInjected);
+    const allAccounts = await web3Accounts();
+    console.log("allAccounts",allAccounts);
     if(allInjected.length==0){
       //invite the user to install a wallet
       let msg='<div class="alert alert-warning" role="alert"><center>';
@@ -2122,6 +2230,29 @@ async function derive_key_from_password(password,salt){
   );
   return([key,randomsalt]);
 }
+// function to convert array buffer to base64 string
+function arrayBufferToBase64(arrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(arrayBuffer);
+
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary);
+}
+// function to convert base64 to array buffer
+function base64ToArrayBuffer(base64String) {
+  const binaryString = atob(base64String);
+  const length = binaryString.length;
+  const bytes = new Uint8Array(length);
+
+  for (let i = 0; i < length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  return bytes.buffer;
+}
 
 // function to convert Uint8Array to base64
 function uint8ArrayToBase64(uint8Array) {
@@ -2150,3 +2281,40 @@ function isValidAddress(address){
       return false;
   }
 }
+// function to convert an array buffer to string
+function arrayBufferToString(arrayBuffer) {
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let string = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    string += String.fromCharCode(uint8Array[i]);
+  }
+  return string;
+}
+// function to convert an hex value to Array Buffer
+function hexToBuffer(hex) {
+  const strippedHex = hex.replace(/\s/g, ''); // Remove any whitespace
+  const byteLength = strippedHex.length / 2;
+  const buffer = new ArrayBuffer(byteLength);
+  const uint8Array = new Uint8Array(buffer);
+
+  for (let i = 0; i < byteLength; i++) {
+    const byteHex = strippedHex.substr(i * 2, 2);
+    uint8Array[i] = parseInt(byteHex, 16);
+  }
+
+  return buffer;
+}
+//function to convert array buffer to hex
+function bufferToHex(buffer) {
+  const uint8Array = new Uint8Array(buffer);
+  let hexString = '';
+
+  for (let i = 0; i < uint8Array.length; i++) {
+    const hexByte = uint8Array[i].toString(16).padStart(2, '0');
+    hexString += hexByte;
+  }
+
+  return hexString;
+}
+
+
