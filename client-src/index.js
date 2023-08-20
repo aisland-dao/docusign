@@ -1,4 +1,4 @@
-import { web3Accounts, web3Enable, web3FromAddress,isWeb3Injected } from '@polkadot/extension-dapp';
+import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
 import qs from 'qs';
 import EditorJS from '@editorjs/editorjs'; 
 import NestedList from '@editorjs/nested-list';
@@ -2058,16 +2058,24 @@ async function upload_image_signature() {
 // the random nonces are generated internally
 // the function returns an object with all the nonces used, the public keys involved and the encrypted msg
 // the object can be serialised to store it on th blockchain
-async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,recipientpublickey){
+async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,recipientpublickeys){
   await _sodium.ready;
   const sodium = _sodium;
-  // generates random nonce
-  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   // generates random secret key 64 bytes (it will be used to encrypt the stream)
   const secretkey=sodium.randombytes_buf(64);
-  //console.log("secretkey",secretkey);
-  // encrypts by x25519
-  const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickey,senderprivatekey);
+  // generate the encrypted key by x25519 to exchange the 64 bytes random secret
+  const x=recipientpublickeys.length;
+  let encsecretkeys=[];
+  let nonces=[];
+  for(let i=0;i<x;i++){
+    // generates random nonce
+    const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+    // encrypts by x25519
+    const encsecretkey=sodium.crypto_box_easy(secretkey,nonce,recipientpublickeys[i],senderprivatekey);
+    //add to the array
+    encsecretkeys.push(encsecretkey);
+    nonces.push(nonce);
+  }
   // use the first 32 bytes of the secret key to encrypt the msg by chacha algorithm
   const secretkeychacha=secretkey.slice(0,32);
   // generate a nonce for chacha20 (24 bytes)
@@ -2086,16 +2094,13 @@ async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,re
   const encmsgaesb=  await crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
   const encmsgaes=new Uint8Array(encmsgaesb);
   let result={
-    nonce25519: nonce,
-    encsecret25519: encsecretkey,
     senderpublickey: senderpublickey,
-    recipientpublickey: recipientpublickey,
+    encsecret25519: encsecretkeys,
+    nonce25519: nonces,
+    recipientpublickeys: recipientpublickeys,
     noncechacha: noncechacha,
     nonceaes: nonceaes,
     encmsg: encmsgaes
-    //encmsgchacha: encmsgchacha,
-    //nonceaes: nonceaes,
-    //encmsgaes: encmsgaes
   };
   // return encrypted object serialized with msgpackr
   return(pack(result));
@@ -2104,17 +2109,35 @@ async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,re
 async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
     // deserialize the encrypted object
     const encmsg=unpack(encmsgb);
-    // wait for sodium available
+    console.log("******* encmsg:");
+    console.log(encmsg);
+    // wait for sodium to be available
     await _sodium.ready;
     const sodium = _sodium;
-    // select the public key of the counter part
-    let pk='';
-    if( encmsg.senderpublickey==publickey)
-        pk=encmsg.recipientpublickey
-    else
-        pk=encmsg.senderpublickey
+    // select the data for the public key received from the array of public keys stored
+    const x=encmsg.recipientpublickeys.length;
+    let encsecret25519;
+    let nonce25519;
+    for(let i=0;i<x;i++){
+      if(isUint8ArrayEqual(publickey,encmsg.recipientpublickeys[i])){
+        encsecret25519=encmsg.encsecret25519[i];
+        nonce25519=encmsg.nonce25519[i]
+        break;
+      }
+    }
+    if(typeof encsecret25519=== 'undefined' || typeof nonce25519 === 'undefined')
+    {
+        console.log("Public key received has not been found in the encrypted msg")
+        return(false);
+    }
     // decrypt the secret key from the public key encryption
-    let secretkey=sodium.crypto_box_open_easy(encmsg.encsecret25519,encmsg.nonce25519,pk,privatekey);
+    let secretkey;
+    try {
+      secretkey=sodium.crypto_box_open_easy(encsecret25519,nonce25519,encmsg.senderpublickey,privatekey);
+    } catch(e){
+      console.log(e);
+      return(false);
+    }
     let secretkeychacha=secretkey.slice(0,32);
     let secretkeyaes=secretkey.slice(32);
     // decrypt first layer by AES-GCM
@@ -2230,6 +2253,19 @@ async function derive_key_from_password(password,salt){
   );
   return([key,randomsalt]);
 }
+// functions to compare 2 uint8array
+function isUint8ArrayEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
 // function to convert array buffer to base64 string
 function arrayBufferToBase64(arrayBuffer) {
   let binary = '';
@@ -2290,31 +2326,4 @@ function arrayBufferToString(arrayBuffer) {
   }
   return string;
 }
-// function to convert an hex value to Array Buffer
-function hexToBuffer(hex) {
-  const strippedHex = hex.replace(/\s/g, ''); // Remove any whitespace
-  const byteLength = strippedHex.length / 2;
-  const buffer = new ArrayBuffer(byteLength);
-  const uint8Array = new Uint8Array(buffer);
-
-  for (let i = 0; i < byteLength; i++) {
-    const byteHex = strippedHex.substr(i * 2, 2);
-    uint8Array[i] = parseInt(byteHex, 16);
-  }
-
-  return buffer;
-}
-//function to convert array buffer to hex
-function bufferToHex(buffer) {
-  const uint8Array = new Uint8Array(buffer);
-  let hexString = '';
-
-  for (let i = 0; i < uint8Array.length; i++) {
-    const hexByte = uint8Array[i].toString(16).padStart(2, '0');
-    hexString += hexByte;
-  }
-
-  return hexString;
-}
-
 
