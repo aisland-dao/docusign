@@ -1,6 +1,6 @@
 -- MariaDB dump 10.19-11.0.2-MariaDB, for osx10.18 (arm64)
 --
--- Host: localhost    Database: docsig
+-- Host: localhost    Database: docusign
 -- ------------------------------------------------------
 -- Server version	11.0.2-MariaDB
 
@@ -35,10 +35,11 @@ CREATE TABLE `documents` (
   `dtlastupdate` datetime NOT NULL,
   `signaturetoken` varchar(128) DEFAULT '',
   `counterpart` varchar(64) DEFAULT '',
+  `othercounterparts` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `documentsaccount` (`account`),
   KEY `signersaccounts` (`account`)
-) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -61,9 +62,8 @@ CREATE TABLE `scannedsignatures` (
   PRIMARY KEY (`id`),
   KEY `documentsaccount` (`account`),
   KEY `signersaccounts` (`account`)
-) ENGINE=InnoDB AUTO_INCREMENT=87 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
 
 --
 -- Table structure for table `signers`
@@ -83,8 +83,6 @@ CREATE TABLE `signers` (
   KEY `signersaccounts` (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
-
 
 --
 -- Table structure for table `standardsignatures`
@@ -109,7 +107,6 @@ CREATE TABLE `standardsignatures` (
 ) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
 --
 -- Table structure for table `templates`
 --
@@ -128,7 +125,6 @@ CREATE TABLE `templates` (
 ) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
 --
 -- Table structure for table `users`
 --
@@ -145,11 +141,13 @@ CREATE TABLE `users` (
   `signaturefullname` varchar(64) DEFAULT '',
   `signatureinitials` varchar(2) DEFAULT '',
   `signaturefontname` varchar(64) DEFAULT '',
+  `signaturetoken` varchar(64) DEFAULT '',
+  `encryptionkey` varchar(1024) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `usersaccount` (`account`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -159,4 +157,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-08-13  8:23:21
+-- Dump completed on 2023-08-23 14:14:30

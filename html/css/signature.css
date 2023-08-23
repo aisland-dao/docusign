@@ -1,0 +1,20 @@
+.signature {
+    padding: 20px 0;
+}
+
+.signature input,
+.signature [contenteditable] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #e4e4e4;
+    background: #fff;
+    box-sizing: border-box;
+    border-radius: 3px;
+    outline: none;
+    font-size: 14px;
+}
+
+.signature img {
+    max-width: 100%;
+    margin-bottom: 15px;
+}

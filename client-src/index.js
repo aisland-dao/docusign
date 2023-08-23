@@ -4,7 +4,6 @@ import EditorJS from '@editorjs/editorjs';
 import NestedList from '@editorjs/nested-list';
 import Underline from '@editorjs/underline';
 import Strikethrough from '@sotaproject/strikethrough';
-
 //from polkadot.js
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { u8aToString,hexToU8a,u8aToHex, isHex, stringToU8a } = require('@polkadot/util');
@@ -12,6 +11,7 @@ const { decodeAddress, encodeAddress } = require('@polkadot/keyring');
 //for encryption/decryption
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
 const { Keyring }=require('@polkadot/keyring');
+const _sodium =require('libsodium-wrappers-sumo');
 
 //from editor.js
 const Header = require("editorjs-header-with-alignment");
@@ -19,7 +19,9 @@ const Quote = require('@editorjs/quote');
 const Delimiter = require('@editorjs/delimiter');
 const Paragraph = require('editorjs-paragraph-with-alignment');
 const ColorPlugin = require('editorjs-text-color-plugin');
-const _sodium =require('libsodium-wrappers-sumo');
+// load custom plugin used for the signature inside the editor.js
+import Signature from '../editorjs-signature-plugin/signature.js'
+
 //for binary serialization
 const { unpack, pack } = require('msgpackr');
 
@@ -35,12 +37,15 @@ let fontsFlag=false;  //used to avoid multiple loading of the fonts
 let nrFonts=0;        // the number of fonts loaded
 let fonts=[];         // fonts array loaded from disk
 let encryptedprivatekey; //encrypted private key
+let api;    //used for the connection to the node
 
 
 let signaturetoken='';
+
 // check for token in session
 const sessionToken=window.sessionStorage.getItem("currentToken");
-const sessionAccount=window.sessionStorage.getItem("currentAccount");
+const  sessionAccount=window.sessionStorage.getItem("currentAccount");
+let publicsignaturetoken=window.sessionStorage.getItem("publicsignaturetoken");
 //console.log(sessionAccount);
 if(sessionToken != null)
   currentToken=sessionToken;
@@ -346,8 +351,8 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
     // connect to the node
-    const provider = new WsProvider('wss://testnet.aisland.io');
-    const api = await ApiPromise.create({ provider });
+    //const provider = new WsProvider('wss://testnet.aisland.io');
+    //const api = await ApiPromise.create({ provider });
     // Retrieve the chain & node information information via rpc calls
     const [chain, nodeName, nodeVersion] = await Promise.all([
       api.rpc.system.chain(),
@@ -506,7 +511,7 @@ document.getElementById("docsignsign").onclick = async () => {
           document.getElementById("docsignmsg").innerHTML = msg;
           return;
         }
-        //read blob file in arra buffer
+        //read blob file in arrayBuffer
         let ab =await blob.arrayBuffer();
         ab =new Uint8Array(ab);
         // generate the key pair
@@ -515,7 +520,7 @@ document.getElementById("docsignsign").onclick = async () => {
         //console.log("keyspair",keyspair);
         //console.log("publickeyCounterpart",publickeyCounterpart);
         // encrypt the binary data
-        const encryptedab=await encrypt_asymmetric_stream(ab,keyspair.privateKey,keyspair.publicKey,publickeyCounterpart);
+        const encryptedab=await encrypt_asymmetric_stream(ab,keyspair.privateKey,keyspair.publicKey,[publickeyCounterpart,keyspair.publicKey]);
         const blobb64=arrayBufferToBase64(encryptedab);
         //console.log("blobb64",blobb64);
         // use utility pallet to store the document and sign the hash in one call
@@ -678,9 +683,11 @@ async function connectWallet(){
       //render the document list UI
       currentToken=token;
       // set a session variable
+      publicsignaturetoken=signinJSON.publicsignaturetoken;
       window.sessionStorage.setItem("currentToken",currentToken);
       window.sessionStorage.setItem("currentAccount",JSON.stringify(currentAccount));
-
+      window.sessionStorage.setItem("publicsignaturetoken",publicsignaturetoken);
+      //console.log("publicsignaturetoken",publicsignaturetoken);
       render_main('drafts');
 
   }
@@ -1014,6 +1021,10 @@ function render_editor_document(docdata){
   document.getElementById("root").innerHTML =c;
   // set border around edtior
   document.getElementById("editorjs").style.border = "solid #434545";
+  // build path for standard signature and placeholder
+  const standardsignature = window.location.protocol + "//" + window.location.host+"/publicsignature?t="+publicsignaturetoken;
+  const counterpartsignature=window.location.protocol + "//" + window.location.host+"/img/signatureplaceholder.png";
+  console.log("standardsignature",standardsignature);
   // configure editor
   const editor =new EditorJS({
     holder: 'editorjs',
@@ -1071,6 +1082,14 @@ function render_editor_document(docdata){
       },
       underline: Underline,
       strikethrough: Strikethrough,
+      //signature plugin
+      signature: {
+        class: Signature,
+        config: {
+            standardsignature: standardsignature,
+            counterpartsignature: counterpartsignature
+        }
+      }
     },
     
   });
@@ -1599,8 +1618,8 @@ async function save_encryption(){
   let keyspair=sodium.crypto_box_seed_keypair(seedString);
   console.log("keyspair",keyspair);
   // connect to the node
-  const provider = new WsProvider('wss://testnet.aisland.io');
-  const api = await ApiPromise.create({ provider });
+  //const provider = new WsProvider('wss://testnet.aisland.io');
+  //const api = await ApiPromise.create({ provider });
   // Retrieve the chain & node information information via rpc calls
   const [chain, nodeName, nodeVersion] = await Promise.all([
     api.rpc.system.chain(),
@@ -1792,12 +1811,14 @@ async function enableWeb3() {
       document.getElementById("msg").innerHTML = msg;
       return;
     }
+    const provider = new WsProvider('wss://testnet.aisland.io');
+    api = await ApiPromise.create({ provider });
 }
 
 // render the signature with different type of fonts
 // from global vars
 async function render_signatures() {
-  console.log("render_signatures called");
+  //console.log("render_signatures called");
   const fullnamev=document.getElementById("fullname").value;
   const initialsv=document.getElementById("initials").value;
   // generate the signatures with different fonts

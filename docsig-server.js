@@ -11,8 +11,12 @@ const multer = require("multer");
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const upload = multer({ dest: "upload/" });
 const edjsHTML = require("editorjs-html");
+// html->png for signature generation from font
+const nodeHtmlToImage = require('node-html-to-image')
+const {encodeToDataUrl} = require('node-font2base64');
 let api;
 const provider = new WsProvider('wss://testnet.aisland.io');
+
 
 
 
@@ -66,7 +70,7 @@ async function mainloop(){
     app.get('/', async function (req, res) {
        res.redirect(301, 'index.html');     
     });
-    // main page is dex.html with a permannet redirect
+    // main page is index.html with a permannet redirect
     app.get('/signin', async function (req, res) {
         const signature=req.query.signature;
         const token=req.query.data;
@@ -91,13 +95,15 @@ async function mainloop(){
         // check for the same account in the table
         const [rows, fields] = await connection.execute('select * from users where account=?',[account]);
         if(rows.length==0){
-            await connection.execute('insert into users set account=?,token=?,dttoken=now()',[account,token]);
+            const randomtoken = crypto.randomBytes(32).toString('hex');
+            await connection.execute('insert into users set account=?,token=?,dttoken=now(),signaturetoken=?',[account,token,randomtoken]);
         }else{
-            await connection.execute('update users set account=?,token=?,dttoken=now()',[account,token]);   
+            await connection.execute('update users set token=?,dttoken=now() where account=?',[token,account]);   
         }
         // confirm the signin
-        console.log("Signin confirmed");
-        res.send('{"answer":"OK","message":"signin completed"}');
+        const answer='{"answer":"OK","message":"signin completed","publicsignaturetoken":"'+rows[0].signaturetoken+'"}';
+        console.log("Signin confirmed:",answer);
+        res.send(answer);
         connection.close();
         return;
 
@@ -1349,6 +1355,105 @@ async function mainloop(){
                 return;
             }
         });
+    });
+    // send back the signature image using the signaturetoken for authentication
+    // the signature token is unique for each users and it's a shareable authetication token
+    app.get('/publicsignature', async function (req, res) {
+        // parameters required
+        const token=req.query.t;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: The authentication token \"t\" is missing");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        let connection = await mysql.createConnection({
+            host     : DB_HOST,
+            user     : DB_USER,
+            password : DB_PWD,
+            database : DB_NAME,
+            multipleStatements : true
+        });
+        // authenticate the token searching for it on the users table
+        const q="select signaturefullname,signatureinitials,signaturefontname,urlfile,originalfilename,size,mimetype from users,scannedsignatures where signaturetoken=? and users.account=scannedsignatures.account and type='S'"
+        const [rows, fields] = await connection.execute(q,[token]);
+        if(rows.length==0){
+            const answer='{"answer":"KO","message":"invalid authentication token"}';
+            console.log("answer:",answer);
+            res.send(answer);
+            await connection.end()
+            console.log('returning back');
+            return;
+        }
+        // Send scanned image when set
+        if(rows[0].signaturefontname=="SCANNED"){
+            // configure the sending
+            let options = {
+                root: path.join(__dirname, 'upload'),
+                dotfiles: 'deny',
+                headers: {
+                'Content-Type': rows[0].mimetype,
+                'Content-Disposition': 'attachment; filename='+rows[0].originalfilename,
+                'Content-Length':rows[0].size,
+                'Cache-Control': 'no-store',
+                'x-timestamp': Date.now(),
+                'x-sent': true,
+                }
+            }
+            //send the file
+            let fileName = rows[0].urlfile;
+            res.sendFile(fileName, options, function (err) {
+                if (err) {
+                    console.log(err);
+                    connection.end();
+                } else {
+                    console.log('File Sent:', fileName);
+                    connection.end();
+                    return;
+                }
+            });
+        }else {
+          // send image generated from font
+          // set the font
+          let fontname="fonts/standardsignature/Thesignature.ttf"
+          if(rows[0].signaturefontname.length>0){
+                fontname=rows[0].signaturefontname;
+          }  
+          // set the name
+          let name="Name Not Configured";
+          if(rows[0].signaturefullname.length>0)
+            name=rows[0].signaturefullname;
+          //convert the font to base64
+          fontname='./html/'+fontname;
+          console.log("signature fontname:",fontname);
+          console.log("signature name:",name);
+          const _data = await encodeToDataUrl(fontname);
+          const html = `
+            <html>
+            <head>
+                <style>
+                @font-face {
+                    font-family: 'standardfont';
+                    src: url(${_data}) format('woff2'); 
+                }
+                body {
+                    width: 300px;
+                    height: 48px;
+                }
+                </style>
+            </head>
+            <body>  
+            <p style="font-family: standardfont; font-size:48px">${name}</p>
+            </body
+            </html>`;
+            const image = await nodeHtmlToImage({html:html});
+            res.writeHead(200, { 'Content-Type': 'image/png' });
+            res.end(image, 'binary');
+            console.log("Signature generated from font has been sent");
+            connection.end();
+            return;
+        }
     });
     // get the private key ED25519 used to encrypt/decrypt documents
     app.get('/getprivatekey', async function (req, res) {
