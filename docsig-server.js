@@ -94,14 +94,17 @@ async function mainloop(){
         });
         // check for the same account in the table
         const [rows, fields] = await connection.execute('select * from users where account=?',[account]);
+        let signaturetoken=''
         if(rows.length==0){
             const randomtoken = crypto.randomBytes(32).toString('hex');
+            signaturetoken=randomtoken;
             await connection.execute('insert into users set account=?,token=?,dttoken=now(),signaturetoken=?',[account,token,randomtoken]);
         }else{
             await connection.execute('update users set token=?,dttoken=now() where account=?',[token,account]);   
+            signaturetoken=rows[0].signaturetoken;
         }
         // confirm the signin
-        const answer='{"answer":"OK","message":"signin completed","publicsignaturetoken":"'+rows[0].signaturetoken+'"}';
+        const answer='{"answer":"OK","message":"signin completed","publicsignaturetoken":"'+signaturetoken+'"}';
         console.log("Signin confirmed:",answer);
         res.send(answer);
         connection.close();
