@@ -93,7 +93,7 @@ async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
     try {
       secretkey=sodium.crypto_box_open_easy(encsecret25519,nonce25519,encmsg.senderpublickey,privatekey);
     } catch(e){
-      console.log(e);
+      //console.log(e);
       return(false);
     }
     let secretkeychacha=secretkey.slice(0,32);
