@@ -1,4 +1,4 @@
-import { web3Accounts, web3Enable, web3FromAddress } from '@polkadot/extension-dapp';
+import { web3Accounts, web3Enable, web3FromAddress} from '@polkadot/extension-dapp';
 import qs from 'qs';
 import EditorJS from '@editorjs/editorjs'; 
 import NestedList from '@editorjs/nested-list';
@@ -77,15 +77,21 @@ const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
 // Here we set the actions of the different menu/buttons/links
-if(typeof document.getElementById("connect") !== 'undefined'){
+if(typeof document.getElementById("connect") !== 'undefined' &&
+    document.getElementById("connect")!=null ){
     // connect wallet button
-    document.getElementById("connect").onclick = () => {
-      connectWallet();
-    };
+    //document.getElementById("connect").onclick = () => {
+    //  connectWallet();
+    //};
+    const connectwallet=document.getElementById("connect");
+    connectwallet.addEventListener('click',connectWallet);
 }
 // logout, remove all the session data
 document.getElementById("logout").onclick = () => {
   window.sessionStorage.clear();
+  const home=window.location.protocol + "//" + window.location.host;
+  window.sessionStorage.clear();
+  window.location.replace(home);
 };
 // jump to templates rendering
 document.getElementById("menutemplates").onclick = () => {
@@ -603,7 +609,6 @@ async function writeDocumentDescription(){
 // function to view a document in the browser
 //function called to connect the wallet
 async function connectWallet(){
-    //console.log("Extension on page:",isWeb3Injected);
     //fetch the injected wallet
     let allInjected = await web3Enable('docusign.aisland.io')
     //console.log("allInjected",allInjected);
@@ -1796,21 +1801,26 @@ function tagfilter(evt){
 }
 //function to enable web3
 async function enableWeb3() {
-    let allInjected = await web3Enable('docusign.aisland.io')
-    //console.log("allInjected",allInjected);
-    const allAccounts = await web3Accounts();
-    console.log("allAccounts",allAccounts);
-    if(allInjected.length==0){
-      //invite the user to install a wallet
-      let msg='<div class="alert alert-warning" role="alert"><center>';
-      msg=msg+'There is no wallet extension in your browser. Please install the <a href="https://polkadot.js.org/extension/" target="_blank">Polkadot Wallet Extension</a>';
-      msg=msg+' or <a href="https://www.subwallet.app" target="_blank">Subwallet</a>.';
+    //mesasge to invite the user to install the wallet
+    let msg='<div class="alert alert-warning" role="alert"><center>';
+    msg=msg+'There is no wallet extension in your browser. Please install the <a href="https://polkadot.js.org/extension/" target="_blank">Polkadot Wallet Extension</a>';
+    msg=msg+' or <a href="https://www.subwallet.app" target="_blank">Subwallet</a>.';
+    msg=msg+"</center></div>";
 
-      msg=msg+"</center></div>";
+    try {
+      await web3Enable('docusign.aisland.io');
+      const allAccounts = await web3Accounts();
+      console.log("allAccounts",allAccounts);
+    }
+    catch(e){
       document.getElementById("msg").innerHTML = msg;
+      console.log(e);
       return;
     }
+    //**********************************************************
+    //connect node (you may change this for your custom node)
     const provider = new WsProvider('wss://testnet.aisland.io');
+    //**********************************************************
     api = await ApiPromise.create({ provider });
 }
 
