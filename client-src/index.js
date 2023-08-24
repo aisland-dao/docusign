@@ -21,7 +21,7 @@ const  {encrypt_asymmetric_stream,
         decrypt_symmetric_stream
 } = require('../modules/cryptostream.js');
 */
-const crypto = require('crypto').webcrypto;
+//const crypto = require('crypto').webcrypto;
 
 
 // conversion utilities
@@ -45,7 +45,7 @@ import Signature from '../editorjs-signature-plugin/signature.js'
 
 //for binary serialization
 const { unpack, pack } = require('msgpackr');
-
+// assign crypto variable
 let lastaccountidx=0;
 let currentAccount='';
 let currentToken='';
@@ -2142,9 +2142,9 @@ async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,re
   // set the algorithm
   const alg = { name: 'AES-GCM', iv: nonceaes };
   // import the key
-  const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
+  const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
   // encrypt the output of chacha
-  const encmsgaesb=  await crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
+  const encmsgaesb=  await window.crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
   const encmsgaes=new Uint8Array(encmsgaesb);
   let result={
     senderpublickey: senderpublickey,
@@ -2196,9 +2196,9 @@ async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
     // decrypt first layer by AES-GCM
     const alg = { name: 'AES-GCM', iv: encmsg.nonceaes };
     // import the key
-    const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
+    const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
     //decryption  by AESGCM
-    const encmsgchachab=  await crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
+    const encmsgchachab=  await window.crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
     const encmsgchacha = new Uint8Array(encmsgchachab);
     // decryption second layer by Chacha20
     let result=sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null,encmsgchacha,null,encmsg.noncechacha,secretkeychacha);
@@ -2232,9 +2232,9 @@ async function encrypt_symmetric_stream(msg,password){
   // set the algorithm
   const alg = { name: 'AES-GCM', iv: nonceaes };
   // import the key
-  const tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
+  const tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['encrypt']);
   // encrypt the output of chacha
-  const encmsgaesb=  await crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
+  const encmsgaesb=  await window.crypto.subtle.encrypt(alg, tmpkeyaes, encmsgchacha);                   
   const encmsgaes=new Uint8Array(encmsgaesb);
   let result={
     saltchacha:saltchacha,
@@ -2265,14 +2265,14 @@ async function decrypt_symmetric_stream(encmsgb,password){
   // import the key
   let tmpkeyaes;
   try {
-    tmpkeyaes = await crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
+    tmpkeyaes = await window.crypto.subtle.importKey('raw', secretkeyaes, alg, false, ['decrypt']);
   } catch(e) {
     return(false);
   }
   //decryption  by AESGCM
   let encmsgchachab;
   try {
-    encmsgchachab=  await crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
+    encmsgchachab=  await window.crypto.subtle.decrypt(alg, tmpkeyaes, encmsg.encmsg); 
   } catch(e) {
     return(false);
   }
