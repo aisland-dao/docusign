@@ -85,13 +85,7 @@ async function mainloop(){
         }
         // store in DB
         //connect database
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check for the same account in the table
         const [rows, fields] = await connection.execute('select * from users where account=?',[account]);
         let signaturetoken=''
@@ -106,8 +100,8 @@ async function mainloop(){
         // confirm the signin
         const answer='{"answer":"OK","message":"signin completed","publicsignaturetoken":"'+signaturetoken+'"}';
         console.log("Signin confirmed:",answer);
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
 
     });
@@ -130,19 +124,13 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         //update status
@@ -150,8 +138,8 @@ async function mainloop(){
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and status='draft' order by dtlastupdate desc",[account]);
         // send the back the records in json format
+        await connection.end();
         res.send(JSON.stringify(rows));
-        connection.close();
         return;
     });
     // function to return the documents in waiting status 
@@ -177,19 +165,13 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         await update_status_documents_waiting(account,connection);
@@ -199,8 +181,8 @@ async function mainloop(){
         const [rows, fields] = await connection.execute("select * from documents where (account=? and status='waiting') or (signaturetoken=? and (status='waiting' or status='draft')) order by dtlastupdate desc",[account,signaturetoken]);
         console.log(JSON.stringify(rows));
         // send the back the records in json format
+        await connection.end();
         res.send(JSON.stringify(rows));
-        connection.close();
         return;
     });
     // function to return the documents in action required status 
@@ -222,26 +204,20 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and status='action' order by dtlastupdate desc",[account]);
         // send the back the records in json format
+        await connection.end();
         res.send(JSON.stringify(rows));
-        connection.close();
         return;
     });
     // function to return the documents in approved status
@@ -263,26 +239,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=?) and status='approved' order by dtlastupdate desc",[account,account]);
         // send the back the records in json format
-        await res.send(JSON.stringify(rows));
-        await connection.close();
+        await connection.end();
+        res.send(JSON.stringify(rows));
+        
         return;
     });
     // function to set the signaturetoken in a cookie and redirect to index.html
@@ -320,27 +291,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=? or signaturetoken=?) and status='rejected' order by dtlastupdate desc",[account,account,signaturetoken]);
         // send the back the records in json format
         console.log("documentsrejected:",JSON.stringify(rows));
+        await connection.end();
         res.send(JSON.stringify(rows));
-        connection.close();
         return;
     });
     // document view
@@ -370,27 +335,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=?",[account,documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid not found for the account"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // configure the sending
@@ -483,30 +442,24 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for templates (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from templates where id=?",[documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid not found"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
-        connection.close();
+        await connection.end();
         const edjsParser = edjsHTML();
         const contentFileObj=JSON.parse(rows[0].content)    
         const html = edjsParser.parse(contentFileObj);
@@ -562,27 +515,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for templates (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from templates where id=?",[documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid not found"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }        
         let options = {
@@ -631,19 +578,13 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
@@ -663,8 +604,8 @@ async function mainloop(){
         await connection.execute("delete from documents where account=? and id=? and status='draft'",[account,documentid]);
         //return message to client
         const answer='{"answer":"OK","message":"document deleted"}';
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     });
     // document reject
@@ -699,27 +640,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=? or signaturetoken=?) and id=? and status='waiting'",[account,account,signaturetoken,documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid in waiting not found for the account:'+account+' id: '+documentid+'"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         console.log("Document to reject:",rows[0]);
@@ -728,8 +663,8 @@ async function mainloop(){
         await connection.execute("update documents set status='rejected' where (account=? or counterpart=? or signaturetoken=?) and id=? and status='waiting'",[account,account,signaturetoken,documentid]);
         //return message to client
         const answer='{"answer":"OK","message":"document rejected"}';
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     });
     // document link
@@ -760,19 +695,13 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
@@ -797,9 +726,8 @@ async function mainloop(){
         console.log("signaturetoken 2",signaturetoken);
         //return message to client
         const answer='{"answer":"OK","signaturetoken":"'+signaturetoken+'"}';
-
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     });
     // function to return the documents in approved status
@@ -821,27 +749,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query to get templates 
         const [rows, fields] = await connection.execute("select * from templates order by description");
         // send the back the records in json format
         console.log("templates:",JSON.stringify(rows));
+        await connection.end();
         res.send(JSON.stringify(rows));
-        connection.close();
         return;
     });
     // function to return the documents in approved status
@@ -863,27 +785,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query to get templates 
         const [rows, fields] = await connection.execute("select tags from templates");
         // send the back the records in json format
         const tags=getUniqueTags(rows);
+        await connection.end();
         res.send(JSON.stringify(tags));
-        connection.close();
         return;
     });
     // function to update the document description
@@ -928,26 +844,20 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("update documents set description=? where account=? and id=?",[description,account,documentid]);
         const answer='{"answer":"OK","message":"description has been updated"}';
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     });
     // function to update the document description
@@ -996,27 +906,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // update the counterpart field
         await connection.execute("update documents set counterpart=? where account=? and id=?",[documentaccount,account,documentid]);
         const answer='{"answer":"OK","message":"counterpart has been updated"}';
         //console.log(answer,account,documentaccount,documentid)
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     });
     // document download
@@ -1046,27 +950,21 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // make query for draft documents (sql injection is managed)
         const [rows, fields] = await connection.execute("select * from documents where account=? and id=?",[account,documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid not found for the account"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // configure the sending
@@ -1083,13 +981,13 @@ async function mainloop(){
           }
         //send the file
         let fileName = rows[0].urlfile;
-        res.sendFile(fileName, options, function (err) {
+        res.sendFile(fileName, options, async function (err) {
             if (err) {
                 console.log(err);
-                connection.close();
+                await connection.end();
             } else {
                 console.log('File Sent:', fileName);
-                connection.close();
+                await connection.end();
                 return;
             }
         });
@@ -1113,25 +1011,19 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         const fonts=await get_fonts_list();
         const fontsr={"selected":"","fonts":fonts};
+        await connection.end();
         res.send(JSON.stringify(fontsr));
-        connection.close();
         return;
     });
     // function to store the standard signature
@@ -1207,27 +1099,21 @@ async function mainloop(){
             }
         }
         // connect db
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // store on DB the standard signature
         await connection.execute('update users set signaturefullname=?,signatureinitials=?,signaturefontname=? where account=? and token=?',[fullname,initials,fontname,account,token]);
         const answer='{"answer":"OK","message":"Standard signature has been updated"}';
+        await connection.end();
         res.send(answer);
         //close db
-        connection.close();
         return;
     });
     // function to fetch the standard signature based on font
@@ -1250,33 +1136,27 @@ async function mainloop(){
             return;
         }
         // connect db
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;
         }
         // get the standard signature (possible empty data if was not set)
         const [rows, fields] = await connection.execute('select signaturefullname as fullname,signatureinitials as initials,signaturefontname as fontname from users where account=? and token=?',[account,token]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"user not found"}';
+            await connection.end();
             res.send(answer);
-            connection.close();
             return;        
         }
         // send back signature data
+        await connection.end();
         res.send(JSON.stringify(rows[0]));
-        //close db
-        connection.close();
+        
         return;
     });
     // scanned signatures download
@@ -1306,20 +1186,14 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
             console.log("answer:",answer);
+            await connection.end();
             res.send(answer);
-            await connection.end()
             console.log('returning back');
             return;
         }
@@ -1328,8 +1202,8 @@ async function mainloop(){
         if(rows.length==0){
             const answer='{"answer":"KO","message":"scanned signature not found for the account"}';
             console.log("answer:",answer);
+            await connection.end();
             res.send(answer);
-            await connection.end()
             console.log('returning back');
             return;
         }
@@ -1371,21 +1245,15 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // authenticate the token searching for it on the users table
         const q="select signaturefullname,signatureinitials,signaturefontname,urlfile,originalfilename,size,mimetype from users,scannedsignatures where signaturetoken=? and users.account=scannedsignatures.account and type='S'"
         const [rows, fields] = await connection.execute(q,[token]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"invalid authentication token"}';
             console.log("answer:",answer);
+            await connection.end();
             res.send(answer);
-            await connection.end()
             console.log('returning back');
             return;
         }
@@ -1477,20 +1345,14 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
             console.log("answer:",answer);
+            await connection.end();
             res.send(answer);
-            await connection.end()
             console.log('returning back');
             return;
         }
@@ -1499,8 +1361,8 @@ async function mainloop(){
         if(rows.length==0){
             const answer='{"answer":"KO","message":"something is wrong, user not found"}';
             console.log("answer:",answer);
-            res.send(answer);
             await connection.end();
+            res.send(answer);
             return;
         }
         const answer={
@@ -1508,8 +1370,8 @@ async function mainloop(){
         }
         const as=JSON.stringify(answer);
         console.log("Sending Answer:",as);
+        await connection.end();
         res.send(as);
-        connection.end();
         return;
         
     });
@@ -1540,20 +1402,14 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+        let connection = await opendb();
         // check validity of the security token for the requested account
         const isValidToken= await check_token_validity(token,account,connection);
         if(!isValidToken){
             const answer='{"answer":"KO","message":"Token is not valid"}';
             console.log("answer:",answer);
+            await connection.end();
             res.send(answer);
-            await connection.end()
             console.log('returning back');
             return;
         }
@@ -1562,15 +1418,15 @@ async function mainloop(){
         if(rows.length==0){
             const answer='{"answer":"KO","message":"something is wrong, user not found"}';
             console.log("answer:",answer);
-            res.send(answer);
             await connection.end();
+            res.send(answer);
             return;
         }
         await connection.execute("update users set encryptionkey=? where account=?",[privatekey,account]);
         const answer='{"answer":"OK","message":"Private key has been saved"}';
         console.log("Sending Answer:",answer);
+        await connection.end();
         res.send(answer);
-        connection.end();
         return;
         
     });
@@ -1608,19 +1464,13 @@ async function uploadFiles(req, res) {
     if(typeof token === 'undefined'){
         res.send('{"answer":"KO","message":"token is mandatory" }');
     }
-    let connection = await mysql.createConnection({
-            host     : DB_HOST,
-            user     : DB_USER,
-            password : DB_PWD,
-            database : DB_NAME,
-            multipleStatements : true
-        });
+    let connection = await opendb();
     // check validity of the security token for the requested account
     const isValidToken= await check_token_validity(token,account,connection);
     if(!isValidToken){
         const answer='{"answer":"KO","message":"Token is not valid"}';
+        await connection.end();
         res.send(answer);
-        connection.close();
         return;
     }
     
@@ -1634,8 +1484,8 @@ async function uploadFiles(req, res) {
         const hash = hashSum.digest('hex');
         await connection.execute('insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()',[account,req.files[i].originalname,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
     }
+    await connection.end();
     res.send('{"answer":"OK","message":"Successfully uploaded files" }');
-    connection.close();
     return;
 }
 
@@ -1758,20 +1608,13 @@ async function uploadsignature(req, res) {
         console.log('{"answer":"KO","message":"token is mandatory" }');
         return;
     }
-    let connection = await mysql.createConnection({
-        host     : DB_HOST,
-        user     : DB_USER,
-        password : DB_PWD,
-        database : DB_NAME,
-        multipleStatements : true
-    });
+    let connection = await opendb();
     // check validity of the security token for the requested account
     const isValidToken= await check_token_validity(token,account,connection);
     if(!isValidToken){
         const answer='{"answer":"KO","message":"Token is not valid"}';
+        await connection.end();
         res.send(answer);
-        console.log(answer);
-        connection.close();
         return;
     }
     // store the scanned image
@@ -1794,9 +1637,8 @@ async function uploadsignature(req, res) {
         await connection.execute("update scannedsignatures set originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where account=? and type='S'",[req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash,account]);
 
     }
+    await connection.end();
     res.send('{"answer":"OK","message":"File has been uploaded" }');
-    console.log("closing database");
-    connection.close();
     return;
 }
 // function to manage the initials upload
@@ -1817,20 +1659,13 @@ async function uploadinitials(req, res) {
         console.log('{"answer":"KO","message":"token is mandatory" }');
         return;
     }
-    let connection = await mysql.createConnection({
-        host     : DB_HOST,
-        user     : DB_USER,
-        password : DB_PWD,
-        database : DB_NAME,
-        multipleStatements : true
-    });
+    let connection = await opendb();
     // check validity of the security token for the requested account
     const isValidToken= await check_token_validity(token,account,connection);
     if(!isValidToken){
         const answer='{"answer":"KO","message":"Token is not valid"}';
+        await connection.end();
         res.send(answer);
-        console.log(answer);
-        connection.close();
         return;
     }
     // store the file in temporary location for showing and later saving
@@ -1852,9 +1687,18 @@ async function uploadinitials(req, res) {
         //update an existing record
         await connection.execute("update scannedsignatures set originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where account=? and type='I'",[req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash,account]);
     }
+    await connection.end();
     res.send('{"answer":"OK","message":"File has been uploaded" }');
-    console.log("closing database");
-    connection.close();
     return;
 }
-
+// function to open the db
+async function opendb(){
+    let connection = await mysql.createConnection({
+        host     : DB_HOST,
+        user     : DB_USER,
+        password : DB_PWD,
+        database : DB_NAME,
+        multipleStatements : true
+    });
+    return(connection);
+}
