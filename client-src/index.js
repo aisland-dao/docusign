@@ -20,7 +20,7 @@ const  {encrypt_asymmetric_stream,
         decrypt_symmetric_stream
 } = require('../modules/cryptostream.js');
 
-// utilities
+// conversion utilities
 const {
   bytestohex,
   arrayBufferToBase64,
@@ -77,10 +77,12 @@ const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]
 const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
 // Here we set the actions of the different menu/buttons/links
-// connect wallet button
-document.getElementById("connect").onclick = () => {
-  connectWallet();
-};
+if(typeof document.getElementById("connect") !== 'undefined'){
+    // connect wallet button
+    document.getElementById("connect").onclick = () => {
+      connectWallet();
+    };
+}
 // logout, remove all the session data
 document.getElementById("logout").onclick = () => {
   window.sessionStorage.clear();
@@ -169,10 +171,7 @@ document.getElementById("docedit").onclick = async () => {
     //console.log("answerJSON: ", answerJSON);
     actionsModal.hide();
     if(answerJSON.answer=='KO'){
-      let msg='<div class="alert alert-danger" role="alert"><center>';
-      msg=msg+answerJSON.message;
-      msg=msg+"</center></div>";
-      document.getElementById("msg").innerHTML = msg;
+      await show_error(answerJSON.message);
       return;
     }
     render_editor_document(answerJSON);
@@ -199,10 +198,7 @@ document.getElementById("docdelete").onclick = async () => {
           let answerJSON = await  response.json();
           console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
-            let msg='<div class="alert alert-danger" role="alert"><center>';
-            msg=msg+answerJSON.message;
-            msg=msg+"</center></div>";
-            document.getElementById("msg").innerHTML = msg;
+            await show_error(answerJSON.message);
             return;
           }
           actionsModal.hide();
@@ -264,10 +260,7 @@ document.getElementById("docreject").onclick = async () => {
           let answerJSON = await  response.json();
           console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
-            let msg='<div class="alert alert-danger" role="alert"><center>';
-            msg=msg+answerJSON.message;
-            msg=msg+"</center></div>";
-            document.getElementById("msg").innerHTML = msg;
+            await show_error(answerJSON.message);
             return;
           }
           actionsModal.hide();
@@ -297,10 +290,7 @@ document.getElementById("doclink").onclick = async () => {
     let answerJSON = await  response.json();
     console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
-      let msg='<div class="alert alert-danger" role="alert"><center>';
-      msg=msg+answerJSON.message;
-      msg=msg+"</center></div>";
-      document.getElementById("msg").innerHTML = msg;
+      await show_error(answerJSON.message);
       return;
     }
     actionsModal.hide();
@@ -329,10 +319,7 @@ document.getElementById("docsignreject").onclick = async () => {
           let answerJSON = await  response.json();
           console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
-            let msg='<div class="alert alert-danger" role="alert"><center>';
-            msg=msg+answerJSON.message;
-            msg=msg+"</center></div>";
-            document.getElementById("msg").innerHTML = msg;
+            await show_error(answerJSON.message);
             return;
           }
           signDocumentModal.hide();
@@ -454,8 +441,13 @@ document.getElementById("docsignsign").onclick = async () => {
     const responsek = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSONk = await  responsek.json();
     let flagpk=true
-    if (answerJSONk.answer=="KO" || typeof answerJSONk.encryptionkey==='undefined')
+    if (answerJSONk.answer=="KO" || typeof answerJSONk.encryptionkey==='undefined'){
       flagpk=false
+      if(answerJSONk.message=="Token is not valid"){
+        await show_error(answerJSONk.message);
+        return;
+      }
+    }
     if(flagpk){
       if(answerJSONk.encryptionkey.length==0)
         flagpk=false;
@@ -497,10 +489,7 @@ document.getElementById("docsignsign").onclick = async () => {
     let answerJSON = await  response.json();
     console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
-      let msg='<div class="alert alert-danger" role="alert"><center>';
-      msg=msg+answerJSON.message;
-      msg=msg+"</center></div>";
-      document.getElementById("msg").innerHTML = msg;
+      await show_error(answerJSON.message);
       return;
     }
     //sign the document
@@ -597,10 +586,8 @@ async function writeDocumentDescription(){
     let answerJSON = await  response.json();
     console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
-      let msg='<div class="alert alert-danger" role="alert"><center>';
-      msg=msg+answerJSON.message;
-      msg=msg+"</center></div>";
-      document.getElementById("msg").innerHTML = msg;
+      await show_error(answerJSON.message);
+      return;
     }
     let c=desc;
     // remove temporary listener
@@ -691,10 +678,7 @@ async function connectWallet(){
       console.log("Signin: ", signinJSON);
       //check for approval 
       if(signinJSON.answer=='KO'){
-        let msg='<div class="alert alert-danger" role="alert"><center>';
-        msg=msg+signinJSON.message;
-        msg=msg+"</center></div>";
-        document.getElementById("msg").innerHTML = documentsJSON.description;
+        await show_error(answerJSON.message);
         return
       }
       //render the document list UI
@@ -1491,6 +1475,10 @@ async function render_encryption(){
   let aj = await  response.json();
   console.log("aj",aj);
   if(aj.answer=="KO" || aj.encryptionkey==''){
+      if(aj.message=="Token is not valid"){
+        await show_error(aj.message);
+        return
+      }
       // generate mnemonic seed
       const mnemonic = mnemonicGenerate();
       // show a card element
@@ -1623,10 +1611,7 @@ async function save_encryption(){
   console.log("answerJSON",answerJSON);
   // check the answer from the server
   if(answerJSON.answer=='KO'){
-    let msg='<div class="alert alert-danger" role="alert"><center>';
-    msg=msg+answerJSON.message;
-    msg=msg+"</center></div>";
-    document.getElementById("msg").innerHTML = msg;
+    await show_error(answerJSON.message);
     return(false);
   }
   //check if the public key is published
@@ -1740,10 +1725,7 @@ async function change_password_encryption() {
   console.log("answerJSON",answerJSON);
   // check the answer from the server
   if(answerJSON.answer=='KO'){
-    let msg='<div class="alert alert-danger" role="alert"><center>';
-    msg=msg+answerJSON.message;
-    msg=msg+"</center></div>";
-    document.getElementById("msg").innerHTML = msg;
+    await show_error(answerJSON.message);
     return(false);
   }
   // show message on top and clean fields
@@ -1899,10 +1881,7 @@ async function render_signatures() {
   let answerJSON = await  response.json();
   // check the answer from the server
   if(answerJSON.answer=='KO'){
-    let msg='<div class="alert alert-danger" role="alert"><center>';
-    msg=msg+answerJSON.message;
-    msg=msg+"</center></div>";
-    document.getElementById("msg").innerHTML = msg;
+    await show_error(answerJSON.message);
     return(false);
   }
   // save scanned images if present
@@ -2092,4 +2071,17 @@ function isValidAddress(address){
       return false;
   }
 }
-
+// function to show errors on div id=msg
+async function show_error(message){
+  let msg='<div class="alert alert-danger" role="alert"><center>';
+      msg=msg+message;
+      msg=msg+"</center></div>";
+      document.getElementById("msg").innerHTML = msg;
+      if(message=='Token is not valid'){
+          alert("Authentication is expired, please make a new sign in");
+          const home=window.location.protocol + "//" + window.location.host;
+          window.sessionStorage.clear();
+          window.location.replace(home);
+          return;
+      }
+}
