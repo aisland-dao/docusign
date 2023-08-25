@@ -67,7 +67,6 @@ let signaturetoken='';
 const sessionToken=window.sessionStorage.getItem("currentToken");
 const  sessionAccount=window.sessionStorage.getItem("currentAccount");
 let publicsignaturetoken=window.sessionStorage.getItem("publicsignaturetoken");
-//console.log(sessionAccount);
 if(sessionToken != null)
   currentToken=sessionToken;
 if(sessionAccount != null){
@@ -178,7 +177,6 @@ document.getElementById("docedit").onclick = async () => {
     let url = window.location.protocol + "//" + window.location.host+"/docdownload";
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
-    //console.log("answerJSON: ", answerJSON);
     actionsModal.hide();
     if(answerJSON.answer=='KO'){
       await show_error(answerJSON.message);
@@ -206,7 +204,6 @@ document.getElementById("docdelete").onclick = async () => {
           let url = window.location.protocol + "//" + window.location.host+"/docdelete";
           const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
           let answerJSON = await  response.json();
-          console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
             await show_error(answerJSON.message);
             return;
@@ -245,7 +242,6 @@ document.getElementById("docsign").onclick = async () => {
 }
 // we update the UI fro drafts tab in case of dismiss button
 document.getElementById("docsigndismiss").onclick = async () => {
-  console.log("dismiss button has been pressed");
   render_main('waiting');
 }
 
@@ -268,7 +264,6 @@ document.getElementById("docreject").onclick = async () => {
           let url = window.location.protocol + "//" + window.location.host+"/docreject";
           const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
           let answerJSON = await  response.json();
-          console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
             await show_error(answerJSON.message);
             return;
@@ -283,7 +278,6 @@ document.getElementById("docreject").onclick = async () => {
 document.getElementById("doclink").onclick = async () => {
   if(currentDocumentId>0){
     let docdata=get_document_data(currentDocumentId);
-    console.log("docdata",docdata);
     //check status
     if(docdata.status!='draft' && docdata.status!='waiting'){
       console.log("returning for status not matching");
@@ -298,7 +292,6 @@ document.getElementById("doclink").onclick = async () => {
     let url = window.location.protocol + "//" + window.location.host+"/doclink";
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
-    console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
       await show_error(answerJSON.message);
       return;
@@ -327,7 +320,6 @@ document.getElementById("docsignreject").onclick = async () => {
           let url = window.location.protocol + "//" + window.location.host+"/docreject";
           const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
           let answerJSON = await  response.json();
-          console.log("answerJSON: ", answerJSON);
           if(answerJSON.answer=='KO'){
             await show_error(answerJSON.message);
             return;
@@ -377,16 +369,12 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+`You are connected to ${chain} using ${nodeName} v${nodeVersion}`;
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
-    console.log("currentAccount",currentAccount);
     //const injector = await web3FromSource(currentAccount.meta.source);
     const injector = await web3FromAddress(currentAccount.address);
-    console.log("docdata",docdata);
     if(currentAccount.address==docdata.account){
         //check for document already signed
         const hash = await api.query.docSig.documents(docdata.account,currentDocumentId);
         const hashstring=`${hash}`
-        //console.log("hash",hash);
-        //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             msg='<div class="alert alert-danger" role="alert"><center>';
             msg=msg+"Document already signed";
@@ -396,11 +384,8 @@ document.getElementById("docsignsign").onclick = async () => {
         }
     }else {
         //check for document already signed
-        console.log("currentAccount.address ",currentAccount.address,"currentDocumentId ",currentDocumentId);
         const hash = await api.query.docSig.signatures(currentAccount.address,currentDocumentId);
         const hashstring=`${hash}`
-        //console.log("hash",hash);
-        //console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             msg='<div class="alert alert-danger" role="alert"><center>';
             msg=msg+"Document already signed";
@@ -471,13 +456,11 @@ document.getElementById("docsignsign").onclick = async () => {
     }
     // 
     encryptedprivatekey=base64ToUint8Array(answerJSONk.encryptionkey);
-    //console.log("encryptedprivatekey",encryptedprivatekey);
     const password=document.getElementById("password").value;
     // decrypt secret phrase using the supplied password
     let mnemonicPhrase=await decrypt_symmetric_stream(encryptedprivatekey,password);
     //convert array buffer to string
     mnemonicPhrase=arrayBufferToString(mnemonicPhrase);
-    //console.log("mnemonicPhrase",mnemonicPhrase);
     // check if the password worked
     if(mnemonicPhrase.length==0){
       msg='<div class="alert alert-warning" role="alert"><center>';
@@ -493,11 +476,9 @@ document.getElementById("docsignsign").onclick = async () => {
       documentaccount: counterpart,
       documentid: currentDocumentId,
     }
-    console.log("params",params)
     url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
-    console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
       await show_error(answerJSON.message);
       return;
@@ -533,12 +514,9 @@ document.getElementById("docsignsign").onclick = async () => {
         // generate the key pair
         const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
         const keyspair= sodium.crypto_box_seed_keypair(seedkeys);
-        //console.log("keyspair",keyspair);
-        //console.log("publickeyCounterpart",publickeyCounterpart);
         // encrypt the binary data
         const encryptedab=await encrypt_asymmetric_stream(ab,keyspair.privateKey,keyspair.publicKey,[publickeyCounterpart,keyspair.publicKey]);
         const blobb64=arrayBufferToBase64(encryptedab);
-        //console.log("blobb64",blobb64);
         // use utility pallet to store the document and sign the hash in one call
         const txs = [
           api.tx.docSig.newDocument(currentDocumentId,'0x'+docdata.hash),
@@ -565,9 +543,10 @@ document.getElementById("docsignsign").onclick = async () => {
           msg=msg+`Current Tx status: ${status.type}`;
           msg=msg+"</center></div>";
           document.getElementById("docsignmsg").innerHTML = msg;
-          console.log("status.type",status.type);
-          if(status.type=='Finalized')
-              signDocumentModal.hide;
+          if(status.type=='Finalized'){
+              signDocumentModal.hide();
+              render_main('drafts');
+          }
       }
     }).catch((error) => {
       msg='<div class="alert alert-danger" role="alert"><center>';
@@ -594,7 +573,6 @@ async function writeDocumentDescription(){
     let url = window.location.protocol + "//" + window.location.host+"/updatedocumentdescription";
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
-    console.log("answerJSON: ", answerJSON);
     if(answerJSON.answer=='KO'){
       await show_error(answerJSON.message);
       return;
@@ -615,7 +593,6 @@ async function writeDocumentDescription(){
 async function connectWallet(){
     //fetch the injected wallet
     let allInjected = await web3Enable('docusign.aisland.io')
-    //console.log("allInjected",allInjected);
     if(allInjected.length==0){
       //invite the user to install a wallet
       let msg='<div class="alert alert-warning" role="alert"><center>';
@@ -630,7 +607,6 @@ async function connectWallet(){
     // returns an array of { address, meta: { name, source } }
     // meta.source contains the name of the extension that provides this account
     const allAccounts = await web3Accounts();
-    //console.log("allAccounts",allAccounts);
     if(allAccounts.length==0){
       //invite the user to create an account
       let msg='<div class="alert alert-warning" role="alert"><center>';
@@ -640,7 +616,6 @@ async function connectWallet(){
       return;
     }
     // replace the text of the connect button with the account shortened 
-    console.log(allAccounts[lastaccountidx].address,allAccounts[lastaccountidx].meta.name);
     currentAccount=allAccounts[lastaccountidx];
     let shortaccount=allAccounts[lastaccountidx].meta.name+' ['+allAccounts[lastaccountidx].address.substring(0,5)+'...'+allAccounts[lastaccountidx].address.substring(43)+']';
     document.getElementById("connect").innerHTML=shortaccount;
@@ -661,7 +636,6 @@ async function connectWallet(){
     // generate a random security token
     //To guarantee enough performance, implementations are not using a truly random number generator, but they are using a pseudo-random number generator seeded with a value with enough entropy. The pseudo-random number generator algorithm (PRNG) may vary across user agents, but is suitable for cryptographic purposes. https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
     let token=bytestohex(window.crypto.getRandomValues(new Uint8Array(32)));
-    //console.log("token:",token);
     // finds an injector for an address
     //const injector = await web3FromSource(currentAccount.meta.source);
     const injector = await web3FromAddress(currentAccount.address);
@@ -674,7 +648,6 @@ async function connectWallet(){
           data: token,
           type: 'bytes'
       });
-      //console.log("signature",signature);
       // submit the signature/account/token to the server
       const params ={
         account: currentAccount.address,
@@ -684,7 +657,6 @@ async function connectWallet(){
       let url = window.location.protocol + "//" + window.location.host+"/signin";
       const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
       let signinJSON = await  response.json();
-      console.log("Signin: ", signinJSON);
       //check for approval 
       if(signinJSON.answer=='KO'){
         await show_error(answerJSON.message);
@@ -697,7 +669,6 @@ async function connectWallet(){
       window.sessionStorage.setItem("currentToken",currentToken);
       window.sessionStorage.setItem("currentAccount",JSON.stringify(currentAccount));
       window.sessionStorage.setItem("publicsignaturetoken",publicsignaturetoken);
-      //console.log("publicsignaturetoken",publicsignaturetoken);
       render_main('drafts');
 
   }
@@ -708,10 +679,7 @@ async function render_main(section){
   signaturetoken=getCookie('signaturetoken');
   // force the waiting document at the first time
   let signaturetokenfirstview=getCookie('signaturetokenfirstview');
-  console.log("signaturetoken",signaturetoken);
-  console.log("signaturetokenfirstview",signaturetokenfirstview);
   if(signaturetokenfirstview==signaturetoken && signaturetoken.length>0){
-    console.log("forcing waiting session");
     section='waiting';
     //clear the cookie used for the first view
     document.cookie = "signaturetokenfirstview=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -832,7 +800,6 @@ async function render_main(section){
   }
   
   document.getElementById("root").innerHTML =c;
-  //console.log(c);
   // connect events for the tabs
   const drafts=document.getElementById("drafts");  
   drafts.addEventListener('click', render_drafts, false);    
@@ -872,7 +839,6 @@ async function render_main(section){
 async function documentactions(e){
   // get the document id
   const id=e.srcElement.id.substring(1);
-  console.log("id",id);
   // update global variable to keep a mark on the current document
   currentDocumentId=id;
   //render a modal
@@ -910,7 +876,6 @@ function render_rejected(){
 function uploadFile(file) {
   let url = window.location.protocol + "//" + window.location.host+"/upload";
   let formData = new FormData();
-  console.log("file:",file);
   formData.append('files', file);
   formData.append('account', currentAccount.address);
   formData.append('token', currentToken);
@@ -982,7 +947,6 @@ function render_file_upload(){
   c=c+'</div>';
   c=c+'</div>';
   c=c+'</div>';
-  //console.log(c);
   document.getElementById("root").innerHTML =c;
   // setup events
   dropArea = document.getElementById('drop-area');
@@ -1027,14 +991,12 @@ function render_editor_document(docdata){
   if(typeof docdata !== 'undefined')
     documentdata=docdata;
   
-  console.log("documentdata",documentdata);
   document.getElementById("root").innerHTML =c;
   // set border around edtior
   document.getElementById("editorjs").style.border = "solid #434545";
   // build path for standard signature and placeholder
   const standardsignature = window.location.protocol + "//" + window.location.host+"/publicsignature?t="+publicsignaturetoken;
   const counterpartsignature=window.location.protocol + "//" + window.location.host+"/img/signatureplaceholder.png";
-  console.log("standardsignature",standardsignature);
   // configure editor
   const editor =new EditorJS({
     holder: 'editorjs',
@@ -1124,12 +1086,10 @@ async function documentsave(evt){
   }
   filename=filename+".dcs";
   data=JSON.stringify(data);
-  //console.log("data",data);
   let url = window.location.protocol + "//" + window.location.host+"/upload";
   let formData = new FormData();
   const content = data;
   const blob = new Blob([content], { type: "text/json" });
-  console.log("blob",blob);
   //formData.append("webmasterfile.dcs", blob);
   formData.append('files', blob,filename);
   formData.append('account', currentAccount.address);
@@ -1206,7 +1166,6 @@ async function render_templates(tagfilterv){
   url = window.location.protocol + "//" + window.location.host+"/templates";
   response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
   let templates = await  response.json();
-  console.log(templates);
   // templates' listbox
   c=c+'<div class="row"><div class="col-1"> </div>'
   c=c+'<div class="col-10" id="templatelist">'
@@ -1245,7 +1204,6 @@ async function render_templates(tagfilterv){
   for(i=0;i<x;i++){
     const tagname='tag'+i;
     const v=tagname+".addEventListener('click',tagfilter);"+tagname+'.param="'+tags[i]+'";';
-    console.log(v);
     eval(v);
   }
 }
@@ -1253,7 +1211,6 @@ async function render_templates(tagfilterv){
 async function templateClone(){
   // read select id from
   let id=document.getElementById("templateslist").value;
-  console.log("id",id);
   // fetch docdata of the template
   const params={
     account: currentAccount.address,
@@ -1262,9 +1219,7 @@ async function templateClone(){
   }
   const url = window.location.protocol + "//" + window.location.host+"/templatedata";
   let response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
-  console.log("response",response);
   let data = await  response.json();
-  console.log("data",data);
   render_editor_document(data);
   return;
 }
@@ -1285,9 +1240,7 @@ async function showtemplate(){
   }
   const url = window.location.protocol + "//" + window.location.host+"/templateview";
   let response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
-  console.log("response",response);
   let html = await  response.text();
-  console.log("html",html);
   document.getElementById("templateview").innerHTML =html;
   document.getElementById("templateview").style.border = "solid #434545";
 }
@@ -1338,7 +1291,6 @@ async function render_settings(){
   let url = window.location.protocol + "//" + window.location.host+"/signaturefonts";
   const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
   const fontsJSON = await  response.json();
-  console.log(fontsJSON);
   fonts=fontsJSON.fonts;
   //header
   c=c+'<div class="row"><div class="col-1"></div>';
@@ -1404,7 +1356,6 @@ async function render_settings(){
   url=url+`?${qs.stringify(params)}`;
   const responses = await fetch(url,{method: 'GET',},);
   let answerJSON = await  responses.json();
-  console.log("answerJSON",answerJSON);
   if(typeof answerJSON.fullname=='undefined'){
     // set the full name and initials
     document.getElementById("fullname").value ="John Doe";
@@ -1429,7 +1380,7 @@ async function render_settings(){
     } 
   }
   // make first rendering of the signatures
-  await render_signatures();
+  render_signatures();
   // set the refresh of the signatures at every typing inside the fullname/initials
   const fullname=document.getElementById("fullname");  
   fullname.addEventListener('input', render_signatures, false);   
@@ -1482,7 +1433,6 @@ async function render_encryption(){
   url=url+`?${qs.stringify(params)}`;
   const response = await fetch(url,{method: 'GET',},);
   let aj = await  response.json();
-  console.log("aj",aj);
   if(aj.answer=="KO" || aj.encryptionkey==''){
       if(aj.message=="Token is not valid"){
         await show_error(aj.message);
@@ -1537,8 +1487,6 @@ async function render_encryption(){
       const repeatpassword=document.getElementById("repeatpassword");
       repeatpassword.addEventListener("input",matchPassword,false);
   }else{
-      console.log("aj.encryptionkey",aj.encryptionkey);
-      //console.log("aj",aj);
       encryptedprivatekey=base64ToUint8Array(aj.encryptionkey);
       c=c+'<div class="row"><div class="col-1"></div><div class="col-9">';
       c=c+'<div class="card">';
@@ -1588,7 +1536,6 @@ async function save_encryption(){
   // check password validity
   const password=document.getElementById("password");
   const repeatpassword=document.getElementById("repeatpassword");
-  console.log(password.value,repeatpassword.value);
   if(password.value!=repeatpassword.value){
     let msg='<div class="alert alert-danger" role="alert"><center>';
     msg=msg+"Password is not matching";
@@ -1617,7 +1564,6 @@ async function save_encryption(){
   url=url+`?${qs.stringify(params)}`;
   const response = await fetch(url,{method: 'GET',},);
   let answerJSON = await  response.json();
-  console.log("answerJSON",answerJSON);
   // check the answer from the server
   if(answerJSON.answer=='KO'){
     await show_error(answerJSON.message);
@@ -1627,7 +1573,6 @@ async function save_encryption(){
   // compute public key
   const seedString = mnemonicToMiniSecret(mnemonicPhrase);
   let keyspair=sodium.crypto_box_seed_keypair(seedString);
-  console.log("keyspair",keyspair);
   // connect to the node
   //const provider = new WsProvider('wss://testnet.aisland.io');
   //const api = await ApiPromise.create({ provider });
@@ -1638,16 +1583,13 @@ async function save_encryption(){
     api.rpc.system.version()
   ]);
   const publickey = await api.query.docSig.encryptionPublicKeys(currentAccount.address);
-  console.log("Blockchain public key:",publickey);
   let msg='';
   if(keyspair.publicKey!=publickey){
     //store the public key on chain
     const publickeys=u8aToHex(keyspair.publicKey);
-    console.log("publickeys",publickeys,publickeys.length)
     //const injector = await web3FromSource(currentAccount.meta.source);
     const injector = await web3FromAddress(currentAccount.address);
-    //console.log("injector",injector);
-    //console.log("api",api);
+
     await api.tx.docSig.storePublickey(publickeys).signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
       if (status.isInBlock) {
           msg='<div class="alert alert-info" role="alert"><center>';
@@ -1660,7 +1602,6 @@ async function save_encryption(){
           msg=msg+`Current Tx status: ${status.type}`;
           msg=msg+"</center></div>";
           document.getElementById("msg").innerHTML = msg;
-          console.log("status.type",status.type);
           if(status.type=='Finalized'){
             render_main('drafts');
             return;
@@ -1702,7 +1643,6 @@ async function change_password_encryption() {
   // check password validity
   const password=document.getElementById("password");
   const repeatpassword=document.getElementById("repeatpassword");
-  console.log(password.value,repeatpassword.value);
   if(password.value!=repeatpassword.value){
     let msg='<div class="alert alert-danger" role="alert"><center>';
     msg=msg+"Password is not matching";
@@ -1731,7 +1671,6 @@ async function change_password_encryption() {
   url=url+`?${qs.stringify(params)}`;
   const response = await fetch(url,{method: 'GET',},);
   let answerJSON = await  response.json();
-  console.log("answerJSON",answerJSON);
   // check the answer from the server
   if(answerJSON.answer=='KO'){
     await show_error(answerJSON.message);
@@ -1814,7 +1753,6 @@ async function enableWeb3() {
     try {
       await web3Enable('docusign.aisland.io');
       const allAccounts = await web3Accounts();
-      console.log("allAccounts",allAccounts);
     }
     catch(e){
       document.getElementById("msg").innerHTML = msg;
@@ -1831,12 +1769,10 @@ async function enableWeb3() {
 // render the signature with different type of fonts
 // from global vars
 async function render_signatures() {
-  //console.log("render_signatures called");
   const fullnamev=document.getElementById("fullname").value;
   const initialsv=document.getElementById("initials").value;
   // generate the signatures with different fonts
   for(let i=0;i<fonts.length;i++) {
-    //console.log("font: ",fonts[i]);
     if(fonts[i].length==0)
       continue;
     // we load the fonts one time only
@@ -1868,18 +1804,15 @@ async function render_signatures() {
   let radio;
   for (radio of signatureradio){
     if (radio.checked) {
-        //console.log("radio.value",radio.value);
         break;
     }
   }
-  console.log("radio.value",radio.value);
   let fontname='';
   if(radio.value=="fileupload"){
     fontname="SCANNED"
   }else{
     fontname=fonts[radio.value];
   }
-  console.log(fullname,initials,fontname);
   // call the server to execute the storage
   const params={
     account: currentAccount.address,
@@ -1890,7 +1823,6 @@ async function render_signatures() {
   }
   let url = window.location.protocol + "//" + window.location.host+"/updatesignature";
    url=url+`?${qs.stringify(params)}`;
-   console.log("url",url);
   const response = await fetch(url,{method: 'GET',},);
   let answerJSON = await  response.json();
   // check the answer from the server
@@ -1986,7 +1918,6 @@ async function upload_image_signature() {
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
-    console.log("answerJSON",answerJSON);
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
       return;
@@ -2037,7 +1968,6 @@ async function upload_image_signature() {
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
-    console.log("answerJSON",answerJSON);
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
       return;
@@ -2162,8 +2092,6 @@ async function encrypt_asymmetric_stream(msg,senderprivatekey,senderpublickey,re
 async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
     // deserialize the encrypted object
     const encmsg=unpack(encmsgb);
-    //console.log("******* encmsg:");
-    //console.log(encmsg);
     // wait for sodium to be available
     await _sodium.ready;
     const sodium = _sodium;
@@ -2180,7 +2108,6 @@ async function decrypt_asymmetric_stream(encmsgb,privatekey,publickey){
     }
     if(typeof encsecret25519=== 'undefined' || typeof nonce25519 === 'undefined')
     {
-        //console.log("Public key received has not been found in the encrypted msg")
         return(false);
     }
     // decrypt the secret key from the public key encryption
