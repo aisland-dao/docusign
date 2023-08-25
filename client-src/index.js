@@ -45,6 +45,13 @@ import Signature from '../editorjs-signature-plugin/signature.js'
 
 //for binary serialization
 const { unpack, pack } = require('msgpackr');
+
+
+//***********************************************************
+// ** you may change this to your blockchain
+//***********************************************************
+const BLOCKCHAINENDPOINT='wss://testnet.aisland.io'
+//***********************************************************
 // assign crypto variable
 let lastaccountidx=0;
 let currentAccount='';
@@ -356,9 +363,6 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+"Connecting...";
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
-    // connect to the node
-    //const provider = new WsProvider('wss://testnet.aisland.io');
-    //const api = await ApiPromise.create({ provider });
     // Retrieve the chain & node information information via rpc calls
     const [chain, nodeName, nodeVersion] = await Promise.all([
       api.rpc.system.chain(),
@@ -1574,8 +1578,6 @@ async function save_encryption(){
   const seedString = mnemonicToMiniSecret(mnemonicPhrase);
   let keyspair=sodium.crypto_box_seed_keypair(seedString);
   // connect to the node
-  //const provider = new WsProvider('wss://testnet.aisland.io');
-  //const api = await ApiPromise.create({ provider });
   // Retrieve the chain & node information information via rpc calls
   const [chain, nodeName, nodeVersion] = await Promise.all([
     api.rpc.system.chain(),
@@ -1759,10 +1761,8 @@ async function enableWeb3() {
       console.log(e);
       return;
     }
-    //**********************************************************
-    //connect node (you may change this for your custom node)
-    const provider = new WsProvider('wss://testnet.aisland.io');
-    //**********************************************************
+    //connect node 
+    const provider = new WsProvider(BLOCKCHAINENDPOINT);
     api = await ApiPromise.create({ provider });
 }
 
