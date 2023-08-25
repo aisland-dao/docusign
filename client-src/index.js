@@ -1322,13 +1322,13 @@ async function render_settings(){
     type: 'S'
   }
   let urls = window.location.protocol + "//" + window.location.host+"/getsignaturescanned"+`?${qs.stringify(paramss)}`;
-  c=c+'<img src="'+urls+'" id="previewSignature" height="100">'
+  c=c+'<img src="'+urls+'" id="previewSignature" style="max-height:100px;max-width:300px;height:auto;">'
   c=c+'</div>';
   c=c+'<div class="col-2 bg-light">';
   c=c+'<input class="form-control" type="file" accept="image/*" id="initialsfile">';
   paramss.type='I'
   urls = window.location.protocol + "//" + window.location.host+"/getsignaturescanned"+`?${qs.stringify(paramss)}`;
-  c=c+'<img src="'+urls+'" id="previewInitials" height="100">'
+  c=c+'<img src="'+urls+'" id="previewInitials" style="max-height:100px;max-width:200px;height:auto;">'
   c=c+'</div></div>';
   let background='bg-white';
   for(let i=0;i<fonts.length;i++) {
@@ -1468,6 +1468,7 @@ async function render_encryption(){
       c=c+'</div></div>';
       // ask for password to encrypt the secret seed
       // buttons
+      c=c+'<div class="row"><div class="col-1"></div><div class="col-9" id="msgbottom"></div></div>';  
       c=c+'<br><button type="button" class="btn btn-primary" id="saveButton">Save</button>';
       c=c+' <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>';
       c=c+'</div></div>';
@@ -1598,12 +1599,12 @@ async function save_encryption(){
           //msg=msg+`Tx Completed at block hash #${status.asInBlock.toString()}`;
           msg=msg+`Tx has been accepted, finalizing....`;
           msg=msg+"</center></div>";
-          document.getElementById("msg").innerHTML = msg;
+          document.getElementById("msgbottom").innerHTML = msg;
       } else {
           msg='<div class="alert alert-info" role="alert"><center>';
           msg=msg+`Current Tx status: ${status.type}`;
           msg=msg+"</center></div>";
-          document.getElementById("msg").innerHTML = msg;
+          document.getElementById("msgbottom").innerHTML = msg;
           if(status.type=='Finalized'){
             render_main('drafts');
             return;
@@ -1613,7 +1614,7 @@ async function save_encryption(){
       msg='<div class="alert alert-danger" role="alert"><center>';
       msg=msg+` Tx failed: ${error}`;
       msg=msg+"</center></div>";
-      document.getElementById("msg").innerHTML = msg;
+      document.getElementById("msgbottom").innerHTML = msg;
     });
   }else{
     // return to main dashboard on drafts section

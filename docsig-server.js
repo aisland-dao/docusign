@@ -1203,8 +1203,33 @@ async function mainloop(){
             const answer='{"answer":"KO","message":"scanned signature not found for the account"}';
             console.log("answer:",answer);
             await connection.end();
-            res.send(answer);
-            console.log('returning back');
+            //res.send(answer);
+            //send file with 1 white pixel
+            // configure the sending
+            let options = {
+                root: path.join(__dirname, '/html/img'),
+                dotfiles: 'deny',
+                headers: {
+                'Content-Type': 'image/png',
+                'Content-Disposition': 'attachment; filename=void.png',
+                'Content-Length':90,
+                'Cache-Control': 'no-store',
+                'x-timestamp': Date.now(),
+                'x-sent': true,
+                }
+            }
+            //send the file
+            let fileName = 'whitepixel.png';
+            res.sendFile(fileName, options, function (err) {
+                if (err) {
+                    console.log(err);
+                    connection.end();
+                } else {
+                    console.log('File Sent:', fileName);
+                    connection.end();
+                    return;
+                }
+            });
             return;
         }
         // configure the sending
