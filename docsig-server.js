@@ -1272,8 +1272,9 @@ async function mainloop(){
         }
         let connection = await opendb();
         // authenticate the token searching for it on the users table
-        const q="select signaturefullname,signatureinitials,signaturefontname,urlfile,originalfilename,size,mimetype from users,scannedsignatures where signaturetoken=? and users.account=scannedsignatures.account and type='S'"
-        const [rows, fields] = await connection.execute(q,[token]);
+        //const q="select signaturefullname,signatureinitials,signaturefontname,urlfile,originalfilename,size,mimetype from users,scannedsignatures where signaturetoken=? and users.account=scannedsignatures.account and type='S'"
+        let q="select * from users where signaturetoken=?"
+        let [rows, fields] = await connection.execute(q,[token]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"invalid authentication token"}';
             console.log("answer:",answer);
@@ -1282,23 +1283,40 @@ async function mainloop(){
             console.log('returning back');
             return;
         }
+        const account=rows[0].account;
+        const signaturefullname=rows[0].signaturefullname;
+        const signatureinitials=rows[0].signatureinitials;
+        const signaturefontname=rows[0].signaturefontname;
+        // search for scanned signature
+        q="select * from scannedsignatures where account=? and type='S'";
+        let mimetype='';
+        let fileName = ''
+        let originalfilename=rows[0].originalfilename;
+        let sizef=0;
+        [rows, fields] = await connection.execute(q,[account]);
+        if(rows.length>0){
+            mimetype=rows[0].mimetype;
+            fileName = rows[0].urlfile;
+            originalfilename=rows[0].originalfilename;
+            sizef=rows[0].size;
+        }
+
         // Send scanned image when set
-        if(rows[0].signaturefontname=="SCANNED"){
+        if(signaturefontname=="SCANNED" && fileName.length>0){
             // configure the sending
             let options = {
                 root: path.join(__dirname, 'upload'),
                 dotfiles: 'deny',
                 headers: {
-                'Content-Type': rows[0].mimetype,
-                'Content-Disposition': 'attachment; filename='+rows[0].originalfilename,
-                'Content-Length':rows[0].size,
+                'Content-Type': mimetype,
+                'Content-Disposition': 'attachment; filename='+originalfilename,
+                'Content-Length':sizef,
                 'Cache-Control': 'no-store',
                 'x-timestamp': Date.now(),
                 'x-sent': true,
                 }
             }
             //send the file
-            let fileName = rows[0].urlfile;
             res.sendFile(fileName, options, function (err) {
                 if (err) {
                     console.log(err);
@@ -1313,17 +1331,17 @@ async function mainloop(){
           // send image generated from font
           // set the font
           let fontname="fonts/standardsignature/Thesignature.ttf"
-          if(rows[0].signaturefontname.length>0){
-                fontname=rows[0].signaturefontname;
+          if(signaturefontname.length>0){
+                fontname=signaturefontname;
           }  
           // set the name
           let name="Name Not Configured";
-          if(rows[0].signaturefullname.length>0)
-            name=rows[0].signaturefullname;
+          if(signaturefullname.length>0)
+            name=signaturefullname;
           //convert the font to base64
           fontname='./html/'+fontname;
-          console.log("signature fontname:",fontname);
-          console.log("signature name:",name);
+          //console.log("signature fontname:",fontname);
+          //console.log("signature name:",name);
           const _data = await encodeToDataUrl(fontname);
           const html = `
             <html>
