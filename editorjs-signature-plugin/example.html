@@ -1,16 +1,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
-<script src="signature.js"></script>
+<!-- <script src="signature.js"></script> -->
 <link href="signature.css" rel="stylesheet"/>
 <div id="editorjs"></div>
 
 <button id="save-button">Save</button>
 <pre id="output"></pre>
 
-<script>
+<script type="module" >
+    import {Signature} from "./signature.js"
     const editor = new EditorJS({
       autofocus: true,
       tools: {
-        image: {
+        signature: {
             class: Signature,
             config: {
                 standardsignature: 'https://www.aisland.io/img/coat-arm-highres.png',

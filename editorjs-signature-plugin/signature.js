@@ -1,13 +1,12 @@
 // this plugin place the standard signature and/or the counterpart signature placeholder
 // compatible with editor.js > 4.x
-class Signature {
+export default class Signature {
     // load previos data if any
     constructor({data,api,config}){
         // get api handle
         this.api = api;
         // load config data if any
         this.config = config || {};
-        //this.data = data;
         this.data = {
             url: data.url || '',
             caption: data.caption || ''
@@ -86,3 +85,4 @@ class Signature {
         
     }
 }
+export { Signature};
