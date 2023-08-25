@@ -539,7 +539,7 @@ async function mainloop(){
                 'x-sent': true,
             }
         }
-        connectiojn.close();
+        connection.close();
         res.send(rows[0].content,options, function (err) {
             if (err) {
                 console.log('ERROR:'+err);
