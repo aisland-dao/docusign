@@ -14,10 +14,14 @@ You can use the faucet available at:
 - [Nodejs >18.x](https://nodejs.org)  
 - [Mariadb Server](https://mariadb.org)
 
-##Installation
+## Installation
 
 - install Nodejs following the instructions on the official website  
 - install Mariadb  
+- on Linux Ubuntu/Debian you will need build-essential package:  
+```
+apt-get install build-essential
+```
 - create a database named: docsig with:  
 ```bash
 mysql
