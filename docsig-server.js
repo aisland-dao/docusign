@@ -77,9 +77,15 @@ async function mainloop(){
         const account=req.query.account;
         console.log("account ",account,"token ",token,"signature ",signature);
         // verify signature
-        const { isValid } = utilcrypto.signatureVerify(token, signature, account);
-        if(isValid==false){
-            console.log("ERROR: Invalid Signature");
+        try{
+            const { isValid } = utilcrypto.signatureVerify(token, signature, account);
+            if(isValid==false){
+                console.log("ERROR: Invalid Signature");
+                res.send('{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}');
+                return;
+            }
+        }catch(e){
+            console.log("ERROR: Invalid Signature:",e);
             res.send('{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}');
             return;
         }
@@ -730,7 +736,7 @@ async function mainloop(){
         res.send(answer);
         return;
     });
-    // function to return the documents in approved status
+    // function to return the templates
     app.get('/templates', async function (req, res) {
         // parameters required
         const token=req.query.token;
@@ -766,7 +772,7 @@ async function mainloop(){
         res.send(JSON.stringify(rows));
         return;
     });
-    // function to return the documents in approved status
+    // function to return the templates tags
     app.get('/templatestags', async function (req, res) {
         // parameters required
         const token=req.query.token;
@@ -992,7 +998,7 @@ async function mainloop(){
             }
         });
     });
-    // function to return the documents in approved status
+    // function to return the fonts available for signature
     app.get('/signaturefonts', async function (req, res) {
         // parameters required
         const token=req.query.token;
@@ -1259,7 +1265,7 @@ async function mainloop(){
         });
     });
     // send back the signature image using the signaturetoken for authentication
-    // the signature token is unique for each users and it's a shareable authetication token
+    // the signature token is unique for each users and it's a shareable authentication token
     app.get('/publicsignature', async function (req, res) {
         // parameters required
         const token=req.query.t;

@@ -2,6 +2,9 @@
 // Unit tests
 const _sodium =require('libsodium-wrappers-sumo');
 const {mnemonicGenerate,mnemonicToMiniSecret} = require('@polkadot/util-crypto');
+const { Keyring } =require('@polkadot/keyring');
+const qs=require('qs');
+
 
 const  {encrypt_asymmetric_stream,
         decrypt_asymmetric_stream,
@@ -152,4 +155,226 @@ test('base64ToArrayBuffer failed', async () => {
     let bufferuint8=new Uint8Array(buffer);
     expect(bufferc).not.toBe(bufferuint8);
 });
+test('Api - Signin', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        data: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        signature: '0x3e62a05fe7726a4767358b3cd2adc38e476913e5007a59930c74fcd6d547df63e5f45472512a63c7c8c2849044a652e4fb28322c66ccef9b35948c02fda84186'
+    }
+    let url="http://localhost:3000/signin"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let signinJSON = await  response.json();
+    expect(signinJSON.answer).toEqual("OK");
+});
+test('Api - Signin', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        data: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        signature: '0x3e62a05fe7726a4767358b3cd2adc38e476913e5007a59930c74fcd6d547df63e5f45472512a63c7c8c2849044a652e4fb28322c66ccef9b35948c02fda84186'
+    }
+    let url="http://localhost:3000/signin"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let signinJSON = await  response.json();
+    expect(signinJSON.answer).toEqual("OK");
+});
 
+test('Api - Fetch Documents - Draft', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/documentsdrafts"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Documents - Waiting', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/documentswaiting"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Documents - Action Required', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/documentsactionrequired"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+test('Api - Fetch Documents - Approved', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/documentsapproved"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Documents - Rejected', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/documentsrejected"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Templates', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/templates"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Templates Tags', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/templatestags"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Fetch Signature Fonts', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/signaturefonts"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+
+test('Api - Fetch Public Signature', async () => {
+    const params={
+        t: '99208c8fd7a8f0b81283aec1ba5293be769bbfc2c7818535ca66d217ff7022b0', 
+    }
+    let url="http://localhost:3000/publicsignature"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    const imageBlob = await response.blob();
+    expect(typeof imageBlob).toEqual("object");
+});
+
+
+test('Api - Get Private Key - Not found', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+    }
+    let url="http://localhost:3000/getprivatekey"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+
+test('Api - Update Signature Font', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        fullname: 'John Doe',
+        initials: 'JD',
+        fontname: 'fonts/kristi/Kristi.ttf'
+    }
+    let url="http://localhost:3000/updatesignature"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Update Document Counterpart ', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentaccount: '5C4qhY5c8eiNfzuFHfFrohERpTNBM286KiWB3YTwx6X9aDho',
+        documentid: "95"
+    }
+    let url="http://localhost:3000/updatedocumentcounterpart"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Update Document Description ', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentid: '95',
+        description: "draft 5"
+    }
+    let url="http://localhost:3000/updatedocumentdescription"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    let answerJSON = await  response.json();
+    expect(answerJSON.answer).not.toBe("KO");
+});
+
+test('Api - Download document', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentid: "95"
+    }
+    let url="http://localhost:3000/docdownload"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    const docBlob = await response.blob();
+    expect(typeof docBlob).toEqual("object");
+});
+test('Api - Get Template Data', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentid: "1"
+    }
+    let url="http://localhost:3000/templatedata"+`?${qs.stringify(params)}`
+    const response = await fetch(url,{method: 'GET',},);
+    const docBlob = await response.blob();
+    expect(typeof docBlob).toEqual("object");
+});
+test('Api - Get Template Rendering', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentid: "1"
+    }
+    let url="http://localhost:3000/templateview"+`?${qs.stringify(params)}`
+    console.log(url);
+    const response = await fetch(url,{method: 'GET',},);
+    const docBlob = await response.text();
+    console.log(docBlob);
+    expect(typeof docBlob).toEqual("string");
+});
+
+test('Api - Get Document Rendering', async () => {
+    const params={
+        account: '5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B', 
+        token: 'e7e8c39d179b02402094cfa2b528231375ed47186d38a247dfaf773956256766', 
+        documentid: "95"
+    }
+    let url="http://localhost:3000/docview"+`?${qs.stringify(params)}`
+    console.log(url);
+    const response = await fetch(url,{method: 'GET',},);
+    const docBlob = await response.text();
+    console.log(docBlob);
+    expect(typeof docBlob).toEqual("string");
+});
