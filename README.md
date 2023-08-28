@@ -83,6 +83,18 @@ After the test, close the first session, stopping the API server and  cleanup th
 ./test_clean.sh
 ```
 
+## Docker
+- Requirements: [docker composer](https://www.docker.com)
+- 
+You can run the docker containers with the following commands:  
+```
+npm install
+docker compose up -d
+```
+The dapp will be accessible browsing:  
+```
+http://localhost:3000
+```
 
 ## Customisations:
 If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js whichn
