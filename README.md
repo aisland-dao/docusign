@@ -51,6 +51,35 @@ http://localhost:3000
 
 You may install a reverse proxy like Nginx to manage the https connections.  
 
+
+## Unit Tests
+A set of of unit tests on main core functions and API is avaible and requires to run the API server with some dummy data:
+- in one session run the testing environment executing:  
+```
+./test.sh
+```
+if everyworks, you should see the node server running:  
+```
+DocSig Server - v.1.00
+Listening on port tcp/3000 ....
+```
+open a new session and execute:  
+```
+npm test
+```
+you should see:  
+```
+Test Suites: 1 passed, 1 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
+Time:        1.704 s, estimated 2 s
+```
+You should cleanup the dummy database and data, executing:  
+```
+./test_clean.sh
+```
+
+
 ## Hacking
 If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js.  
 
