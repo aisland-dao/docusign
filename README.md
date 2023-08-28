@@ -96,7 +96,7 @@ The dapp will be accessible browsing:
 http://localhost:3000
 ```
 
-## Customisations:
+## Build Code:
 If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js whichn
 
 
