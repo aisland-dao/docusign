@@ -74,14 +74,14 @@ Tests:       30 passed, 30 total
 Snapshots:   0 total
 Time:        1.704 s, estimated 2 s
 ```
-You should cleanup the dummy database and data, executing:  
+After the test, close the first session, stopping the API server and  cleanup the dummy database and data,executing:  
 ```
 ./test_clean.sh
 ```
 
 
-## Hacking
-If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js.  
+## Customisations:
+If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js whichn
 
 
 
