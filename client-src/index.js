@@ -7,7 +7,7 @@ import Strikethrough from '@sotaproject/strikethrough';
 
 //from polkadot.js
 const { ApiPromise, WsProvider } = require('@polkadot/api');
-const { hexToU8a,u8aToHex, isHex } = require('@polkadot/util');
+const { hexToU8a,u8aToHex, isHex,u8aToString,u8aToBuffer } = require('@polkadot/util');
 const { decodeAddress, encodeAddress } = require('@polkadot/keyring');
 
 //for encryption/decryption
@@ -65,6 +65,7 @@ let fontsFlag=false;  //used to avoid multiple loading of the fonts
 let nrFonts=0;        // the number of fonts loaded
 let fonts=[];         // fonts array loaded from disk
 let encryptedprivatekey; //encrypted private key
+let encryptionpwd=''; //encryption password
 let api;    //used for the connection to the node
 
 
@@ -118,32 +119,53 @@ document.getElementById("menusettings").onclick = () => {
 
 // actions on documents
 // document view
-document.getElementById("docview").onclick = () => {
+document.getElementById("docview").onclick = async () => {
   if(currentDocumentId>0){
-    let docdata=get_document_data(currentDocumentId);
-    const params={
-      account: currentAccount.address,
-      token: currentToken,
-      documentid: currentDocumentId
+    const blob = await api.query.docSig.blobs(currentAccount.address,currentDocumentId,1);
+    if(blob.length>0){
+      let docUrl= await download_blob(blob);
+      // download the file
+      window.open(docUrl);
+      return;
+    }else {
+      const params={
+        account: currentAccount.address,
+        token: currentToken,
+        documentid: currentDocumentId
+      }
+
+      let url = window.location.protocol + "//" + window.location.host+"/docview";
+      url=url+`?${qs.stringify(params)}`;
+      window.open(url);
     }
-    let url = window.location.protocol + "//" + window.location.host+"/docview";
-    url=url+`?${qs.stringify(params)}`;
-    window.open(url);
   }
 };
 // actions on documents
 // document download
-document.getElementById("docdownload").onclick = () => {
+document.getElementById("docdownload").onclick = async () => {
   if(currentDocumentId>0){
-    let docdata=get_document_data(currentDocumentId);
-    const params={
-      account: currentAccount.address,
-      token: currentToken,
-      documentid: currentDocumentId
+    //check for blob available on chain
+    const blob = await api.query.docSig.blobs(currentAccount.address,currentDocumentId,1);
+    if(blob.length>0){
+      let docUrl= await download_blob(blob);
+      let docdata=get_document_data(currentDocumentId);
+      // download the file
+      const link = document.createElement('a');
+      link.href = docUrl;
+      link.download = docdata.originalfilename;
+      link.click();
+      return;
+    }else {
+      // download from the server in case it's not stored on chain
+      const params={
+        account: currentAccount.address,
+        token: currentToken,
+        documentid: currentDocumentId
+      }
+      let url = window.location.protocol + "//" + window.location.host+"/docdownload";
+      url=url+`?${qs.stringify(params)}`;
+      window.open(url);
     }
-    let url = window.location.protocol + "//" + window.location.host+"/docdownload";
-    url=url+`?${qs.stringify(params)}`;
-    window.open(url);
   }
 }
 // actions on documents
@@ -338,17 +360,27 @@ document.getElementById("docsignreject").onclick = async () => {
 }
 // actions on documents
 // document view
-document.getElementById("docsignview").onclick = () => {
+document.getElementById("docsignview").onclick = async () => {
   if(currentDocumentId>0){
     let docdata=get_document_data(currentDocumentId);
-    const params={
-      account: currentAccount.address,
-      token: currentToken,
-      documentid: currentDocumentId
+    //check for blob available on chain
+    const blob = await api.query.docSig.blobs(currentAccount.address,currentDocumentId,1);
+    if(blob.length>0){
+      let docUrl= await download_blob(blob);
+      // download the file
+      window.open(docUrl);
+      return;
+    }else {
+      //download from server when it's not on chain (drafts)
+      const params={
+        account: currentAccount.address,
+        token: currentToken,
+        documentid: currentDocumentId
+      }
+      let url = window.location.protocol + "//" + window.location.host+"/docview";
+      url=url+`?${qs.stringify(params)}`;
+      window.open(url);
     }
-    let url = window.location.protocol + "//" + window.location.host+"/docview";
-    url=url+`?${qs.stringify(params)}`;
-    window.open(url);
   }
 };
 // actions on documents
@@ -428,7 +460,6 @@ document.getElementById("docsignsign").onclick = async () => {
     }
     publickeyCounterpart=hexToU8a(publickeyCounterpart);
 
-    
     // get encryption private key (which is encrypted against a password)
     // the encrypted private key is stored on the server for data exchange between browsers
     // the password is used on the client side without visibility from the server
@@ -473,6 +504,8 @@ document.getElementById("docsignsign").onclick = async () => {
       document.getElementById("docsignmsg").innerHTML = msg;
       return;
     }
+    // set the global var to reuse
+    encryptionpwd=password;
     //update counterpart on the document table
     params ={
       account: docdata.account,
@@ -561,7 +594,7 @@ document.getElementById("docsignsign").onclick = async () => {
 
   }
 };
-// **** block of functions called from the call to actions (CATS) (also known as feline friends)
+// **** block of functions called from the call to actions (CATS) (not a group of feline friends :))
 //function to write the document description
 async function writeDocumentDescription(){
   //get new description
@@ -658,6 +691,7 @@ async function connectWallet(){
         data: token,
         signature: signature
       }
+      //console.log("params",params);
       let url = window.location.protocol + "//" + window.location.host+"/signin";
       const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
       let signinJSON = await  response.json();
@@ -2247,6 +2281,58 @@ function isUint8ArrayEqual(arr1, arr2) {
 
   return true;
 }
-
-
-
+//function to download and decrypt a blob from the blockchain
+async function download_blob(blob){
+    await _sodium.ready;
+    const sodium = _sodium;
+    //console.log("Blob found on chain:",blob);
+    const blobb64=u8aToString(blob);
+    const blobenc=base64ToUint8Array(blobb64);
+    //if the encrypted key is not loaded already in the current session
+    if(typeof encryptedprivatekey === 'undefined'){
+      // get encryption private key (which is encrypted against a password)
+      // the encrypted private key is stored on the server for data exchange between browsers
+      // the password is used on the client side without visibility from the server
+      let params ={
+        account: currentAccount.address,
+        token: currentToken,
+      }
+      let url = window.location.protocol + "//" + window.location.host+"/getprivatekey";
+      const responsek = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+      let answerJSONk = await  responsek.json();
+      if (answerJSONk.answer=="KO" || typeof answerJSONk.encryptionkey==='undefined'){
+        alert(answerJSONk.message);
+        return;
+      }
+      encryptedprivatekey=base64ToUint8Array(answerJSONk.encryptionkey);
+    }
+    // request for password if not available
+    if(encryptionpwd.length==0){
+      encryptionpwd=prompt("Encryption password:");
+    }
+    // decrypt secret phrase using the supplied password
+    let mnemonicPhrase=await decrypt_symmetric_stream(encryptedprivatekey,encryptionpwd);
+    //convert array buffer to string
+    mnemonicPhrase=arrayBufferToString(mnemonicPhrase);
+    // check if the password worked
+    if(mnemonicPhrase.length==0){
+      alert("Encryption Password is wrong");
+      encryptionpwd='';
+      return;
+    }
+    // generate the key pair from the mnemonic phrase
+    const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
+    const keyspair= sodium.crypto_box_seed_keypair(seedkeys);
+    //decrypt the encrypted blob
+    let doc= await decrypt_asymmetric_stream(blobenc,keyspair.privateKey,keyspair.publicKey);
+    if(doc==false){
+      alert("Error decrypting the document, it may be saved with a different encryption key");
+    }
+    //console.log("doc",doc);
+    // get mimetype
+    let docdata=get_document_data(currentDocumentId);
+    let docBlob=new Blob([doc],{ type: docdata.mimetype });
+    // create oject url
+    let docUrl=URL.createObjectURL(docBlob);
+    return(docUrl);
+}
