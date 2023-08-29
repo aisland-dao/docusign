@@ -976,6 +976,11 @@ function uploadFile(file) {
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
+    //check answer
+    if(answerJSON.answer=="KO" && answerJSON.message=='Token is not valid'){
+      logout();
+      return
+    }
     console.log("Upload has been completed",answerJSON);
     let msg='<div class="alert alert-success" role="alert"><center>';
     msg=msg+'Documents have been uploaded successfully';
@@ -1003,6 +1008,15 @@ function handleFiles(files) {
   ([...files]).forEach(uploadFile);
   // render main UI after the upload is completed
   render_main('drafts');
+}
+//function to return home with a logout
+function logout(){
+  window.sessionStorage.removeItem("currentToken");
+  window.sessionStorage.removeItem("currentAccount");
+  window.sessionStorage.removeItem("publicsignaturetoken");
+  window.sessionStorage.clear();
+  const home=window.location.protocol + "//" + window.location.host;
+  window.location.reload(home);
 }
 
 
@@ -1162,7 +1176,7 @@ function render_editor_document(docdata){
   doccancel.param=editor;
 }
 //function to save document
-async function documentsave(evt){
+async function documentsave(evt) {
   const editor=evt.currentTarget.param;
   let data= await editor.save();
   // in case of empyt doc leave without saving
@@ -1191,6 +1205,11 @@ async function documentsave(evt){
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
+    //check answer
+    if(answerJSON.answer=="KO" && answerJSON.message=='Token is not valid'){
+      logout();
+      return
+    }
     console.log("Upload has been completed",answerJSON);
     let msg='<div class="alert alert-success" role="alert"><center>';
     msg=msg+'Documents have been uploaded successfully';
@@ -2006,6 +2025,11 @@ async function upload_image_signature() {
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
+    //check answer
+    if(answerJSON.answer=="KO" && answerJSON.message=='Token is not valid'){
+      logout();
+      return
+    }
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
       return;
@@ -2056,6 +2080,11 @@ async function upload_image_signature() {
   })
   .then(async (answer) => { 
     let answerJSON = await  answer.json();
+    //check answer
+    if(answerJSON.answer=="KO" && answerJSON.message=='Token is not valid'){
+      logout();
+      return
+    }
     if(answerJSON.answer=="OK"){
       console.log("Upload has been completed",answerJSON);
       return;
