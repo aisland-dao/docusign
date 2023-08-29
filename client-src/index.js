@@ -99,10 +99,13 @@ if(typeof document.getElementById("connect") !== 'undefined' &&
 }
 // logout, remove all the session data
 document.getElementById("logout").onclick = () => {
+  window.sessionStorage.removeItem("currentToken");
+  window.sessionStorage.removeItem("currentAccount");
+  window.sessionStorage.removeItem("publicsignaturetoken");
   window.sessionStorage.clear();
   const home=window.location.protocol + "//" + window.location.host;
-  window.sessionStorage.clear();
-  window.location.replace(home);
+  window.location.reload(home);
+  
 };
 // jump to templates rendering
 document.getElementById("menutemplates").onclick = () => {
@@ -258,11 +261,16 @@ document.getElementById("docsign").onclick = async () => {
     const sn=Math.round(docdata.size/1024);
     const s=sn.toLocaleString('en-US');
     document.getElementById("docsignsize").innerHTML = s+" kb";
-    let ac=docdata.account;
+    let ac=currentAccount.address;
     ac=ac.substr(0,6)+"..."+ac.substr(42);
     document.getElementById("docsignmycounterpart").innerHTML = ac;
-    // add field for counterpart account (we need it now to encrypt the document for the counterpart)
-    let cp='<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="'+docdata.counterpart+'" required >';  
+    let cp='';
+    if(docdata.account==currentAccount.address){
+      // add field for counterpart account (we need it now to encrypt the document for the counterpart)
+      cp='<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="'+docdata.counterpart+'" required >';  
+    }else {
+      cp='<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="'+docdata.account+'" disabled >';  
+    }
     document.getElementById("docsigncounterpart").innerHTML = cp;
     document.getElementById("docsignmsg").innerHTML ="";
     // show the signing modal
@@ -327,7 +335,7 @@ document.getElementById("doclink").onclick = async () => {
     }
     actionsModal.hide();
     url=window.location.protocol + "//" + window.location.host+"/sign/?signaturetoken="+answerJSON.signaturetoken;
-    render_main('waiting');
+    //render_main('waiting');
     const text="This is the signing url to share with your counterpart:";
     prompt(text,url);
   }
@@ -406,7 +414,20 @@ document.getElementById("docsignsign").onclick = async () => {
     msg=msg+"</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
     //const injector = await web3FromSource(currentAccount.meta.source);
-    const injector = await web3FromAddress(currentAccount.address);
+    console.log("currentAccount.address",currentAccount.address);
+    let injector;
+    try{
+      injector = await web3FromAddress(currentAccount.address);
+    }catch(e){
+      console.log(e);
+      console.log("injector",injector);
+      const allInjected = await web3Enable('docsig.aisland.io');
+      console.log("allInjected",allInjected);
+      const allAccounts = await web3Accounts();
+      console.log("allAccounts",allAccounts);
+      injector = await web3FromAddress(currentAccount.address);
+    }
+    console.log("injector",injector);
     if(currentAccount.address==docdata.account){
         //check for document already signed
         const hash = await api.query.docSig.documents(docdata.account,currentDocumentId);
@@ -427,25 +448,40 @@ document.getElementById("docsignsign").onclick = async () => {
             msg=msg+"Document already signed";
             msg=msg+"</center></div>";
             document.getElementById("docsignmsg").innerHTML = msg;
+            console.log(msg);
+            console.log("hashstring",hashstring);
+            console.log("currentAccount.address",currentAccount.address);
+            console.log("currentDocumentId",currentDocumentId);
             return;
         }
     }
     //check for counterpart address
-    let counterpart=document.getElementById("counterpart").value;
+    let counterpart='';
+    let counterpartdb=''
+    if(docdata.account==currentAccount.address){
+      counterpart=document.getElementById("counterpart").value;
+      counterpartdb=counterpart;
+    }
+    else {
+      counterpart=docdata.account;
+      counterpartdb=currentAccount.address;
+    }
     // verify the validity of the counterpart address
     if(!isValidAddress(counterpart)){
       msg='<div class="alert alert-danger" role="alert"><center>';
       msg=msg+"Counterpart address is not valid";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
+      console.log(msg);
       return;
     }
-    // verify the counterpart is different from the document account
-    if(counterpart==docdata.account){
+    // verify the counterpart is different from the current address
+    if(counterpart==currentAccount.address){
       msg='<div class="alert alert-danger" role="alert"><center>';
       msg=msg+"Counterpart address must be different from the document creator";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
+      console.log(msg);
       return;
     }
     // verify the counterpart has published the public key for encryption
@@ -456,6 +492,7 @@ document.getElementById("docsignsign").onclick = async () => {
       msg=msg+"Counterpart has not yet published the public key, he/she should configure the encryption";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
+      console.log(msg);
       return;
     }
     publickeyCounterpart=hexToU8a(publickeyCounterpart);
@@ -464,7 +501,7 @@ document.getElementById("docsignsign").onclick = async () => {
     // the encrypted private key is stored on the server for data exchange between browsers
     // the password is used on the client side without visibility from the server
     let params ={
-      account: docdata.account,
+      account: currentAccount.address,
       token: currentToken,
     }
     let url = window.location.protocol + "//" + window.location.host+"/getprivatekey";
@@ -474,6 +511,7 @@ document.getElementById("docsignsign").onclick = async () => {
     if (answerJSONk.answer=="KO" || typeof answerJSONk.encryptionkey==='undefined'){
       flagpk=false
       if(answerJSONk.message=="Token is not valid"){
+        console.log(answerJSONk.message);
         await show_error(answerJSONk.message);
         return;
       }
@@ -487,6 +525,7 @@ document.getElementById("docsignsign").onclick = async () => {
       msg=msg+"Please configure the ENCRYPTION PASSWORD from \"Settings\"";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
+      console.log(msg);
       return;
     }
     // 
@@ -502,20 +541,24 @@ document.getElementById("docsignsign").onclick = async () => {
       msg=msg+"Encryption Password is wrong";
       msg=msg+"</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
+      console.log(msg);
       return;
     }
     // set the global var to reuse
     encryptionpwd=password;
     //update counterpart on the document table
     params ={
-      account: docdata.account,
+      account: currentAccount.address,
       token: currentToken,
-      documentaccount: counterpart,
+      signaturetoken: signaturetoken,
+      documentaccount: counterpartdb,
       documentid: currentDocumentId,
     }
     url = window.location.protocol + "//" + window.location.host+"/updatedocumentcounterpart";
+    console.log("url",url);
     const response = await fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
     let answerJSON = await  response.json();
+    console.log("answerJSON",answerJSON);
     if(answerJSON.answer=='KO'){
       await show_error(answerJSON.message);
       return;
@@ -543,6 +586,7 @@ document.getElementById("docsignsign").onclick = async () => {
           msg=msg+"Document cannot be read, something is wrong";
           msg=msg+"</center></div>";
           document.getElementById("docsignmsg").innerHTML = msg;
+          console.log(msg);
           return;
         }
         //read blob file in arrayBuffer
@@ -568,7 +612,7 @@ document.getElementById("docsignsign").onclick = async () => {
       signdocument=api.tx.docSig.signDocument(currentDocumentId,'0x'+docdata.hash);
     }
     //const transferExtrinsic = api.tx.balances.transfer('5C5555yEXUcmEJ5kkcCMvdZjUo7NGJiQJMS7vZXEeoMhj3VQ', 123456);
-    signdocument.signAndSend(currentAccount.address, { signer: injector.signer }, ({ status }) => {
+    signdocument.signAndSend(currentAccount.address, { signer: injector.signer }, ({ status })   => {
       if (status.isInBlock) {
           msg='<div class="alert alert-info" role="alert"><center>';
           //msg=msg+`Tx Completed at block hash #${status.asInBlock.toString()}`;
@@ -582,7 +626,16 @@ document.getElementById("docsignsign").onclick = async () => {
           document.getElementById("docsignmsg").innerHTML = msg;
           if(status.type=='Finalized'){
               signDocumentModal.hide();
+              // update the status of the document
+              let url = window.location.protocol + "//" + window.location.host+"/updatedocumentstatus";
+              const params={
+                account: currentAccount.address,
+                token: currentToken,
+              };
+              fetch(url+`?${qs.stringify(params)}`,{method: 'GET',},);
+              // render main drafts
               render_main('drafts');
+              
           }
       }
     }).catch((error) => {
@@ -718,7 +771,7 @@ async function render_main(section){
   // force the waiting document at the first time
   let signaturetokenfirstview=getCookie('signaturetokenfirstview');
   if(signaturetokenfirstview==signaturetoken && signaturetoken.length>0){
-    section='waiting';
+    section='drafts';
     //clear the cookie used for the first view
     document.cookie = "signaturetokenfirstview=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   }
@@ -2059,6 +2112,9 @@ async function show_error(message){
       if(message=='Token is not valid'){
           alert("Authentication is expired, please make a new sign in");
           const home=window.location.protocol + "//" + window.location.host;
+          window.sessionStorage.removeItem("currentToken");
+          window.sessionStorage.removeItem("currentAccount");
+          window.sessionStorage.removeItem("publicsignaturetoken");
           window.sessionStorage.clear();
           window.location.replace(home);
           return;

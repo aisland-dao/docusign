@@ -52,7 +52,7 @@ if (typeof DB_PWD === 'undefined') {
     process.exit(1);
 }
 
-console.log("docSig Server - v.1.00");
+console.log("DocSig Server - v.1.00");
 console.log("Listening on port tcp/3000 ....");
 mainloop();
 // main body
@@ -116,6 +116,10 @@ async function mainloop(){
         // parameters required
         const token=req.query.token;
         const account=req.query.account;
+        let signaturetoken=req.cookies.signaturetoken;
+        if(typeof signaturetoken ==='undefined'){
+            signaturetoken='xxxxxxxxxxxxxxxxxxxxxxxxxxxx'; //unused token
+        }
         // check security token
         if(typeof token ==='undefined'){
             console.log("ERROR: Missing token in request documentsdrafts");
@@ -142,7 +146,7 @@ async function mainloop(){
         //update status
         await update_status_documents_drafts(account,connection);
         // make query for draft documents (sql injection is managed)
-        const [rows, fields] = await connection.execute("select * from documents where account=? and status='draft' order by dtlastupdate desc",[account]);
+        const [rows, fields] = await connection.execute("select * from documents where (account=? and status='draft') or (signaturetoken=? and status='draft') or (counterpart=? and status='draft') order by dtlastupdate desc",[account,signaturetoken,account]);
         // send the back the records in json format
         await connection.end();
         res.send(JSON.stringify(rows));
@@ -184,7 +188,7 @@ async function mainloop(){
 
         console.log("account: ",account,"signaturetoken: ",signaturetoken);
         // make query for waiting documents (sql injection is managed)
-        const [rows, fields] = await connection.execute("select * from documents where (account=? and status='waiting') or (signaturetoken=? and (status='waiting' or status='draft')) order by dtlastupdate desc",[account,signaturetoken]);
+        const [rows, fields] = await connection.execute("select * from documents where (account=? and status='waiting') or (signaturetoken=? and status='waiting') or (counterpart=? and status='waiting') order by dtlastupdate desc",[account,signaturetoken,account]);
         console.log(JSON.stringify(rows));
         // send the back the records in json format
         await connection.end();
@@ -260,6 +264,41 @@ async function mainloop(){
         await connection.end();
         res.send(JSON.stringify(rows));
         
+        return;
+    });
+    // function to update the document status for the account
+    app.get('/updatedocumentstatus', async function (req, res) {
+        // parameters required
+        const token=req.query.token;
+        const account=req.query.account;
+        // check security token
+        if(typeof token ==='undefined'){
+            console.log("ERROR: Missing token in request documentsdrafts");
+            const answer='{"answer":"KO","message":"token is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        // check account
+        if(typeof account ==='undefined'){
+            console.log("ERROR: Missing account in request documentsdrafts");
+            const answer='{"answer":"KO","message":"account is mandatory"}';
+            res.send(answer);
+            return;
+        }
+        let connection = await opendb();
+        // check validity of the security token for the requested account
+        const isValidToken= await check_token_validity(token,account,connection);
+        if(!isValidToken){
+            const answer='{"answer":"KO","message":"Token is not valid"}';
+            await connection.end();
+            res.send(answer);
+            return;
+        }
+        //update status
+        await update_status_documents_drafts(account,connection);
+        await update_status_documents_waiting(account,connection);
+        await connection.end();
+        res.send('{"answer":"OK","message":"status updated"}');
         return;
     });
     // function to set the signaturetoken in a cookie and redirect to index.html
@@ -722,12 +761,12 @@ async function mainloop(){
         if(rows[0].signaturetoken.length==0){
             signaturetoken = crypto.randomBytes(32).toString('hex');
             console.log("signaturetoken",signaturetoken);
-            await connection.execute("update documents set status='waiting',signaturetoken=? where account=? and id=? and status='draft'",[signaturetoken,account,documentid]);
+            //await connection.execute("update documents set status='waiting',signaturetoken=? where account=? and id=? and status='draft'",[signaturetoken,account,documentid]);
             await connection.execute("update documents set signaturetoken=? where account=? and id=?",[signaturetoken,account,documentid]);
         }
         else {
             signaturetoken=rows[0].signaturetoken;
-            await connection.execute("update documents set status='waiting' where account=? and id=? and status='draft'",[account,documentid]);
+            //await connection.execute("update documents set status='waiting' where account=? and id=? and status='draft'",[account,documentid]);
         }
         console.log("signaturetoken 2",signaturetoken);
         //return message to client
@@ -870,14 +909,11 @@ async function mainloop(){
     app.get('/updatedocumentcounterpart', async function (req, res) {
         // parameters required
         const token=req.query.token;
+        const signaturetoken=req.query.signaturetoken;
         const account=req.query.account;
         const documentid=req.query.documentid;
         const documentaccount=req.query.documentaccount;
-        if(account==documentaccount){
-            const answer='{"answer":"OK","message":"account is already the main countepart"}';
-            res.send(answer);
-            return;
-        }
+        console.log("req.query",req.query);
         // check security token
         if(typeof token ==='undefined'){
             console.log("ERROR: Missing token in request updatedocumentcounterpart");
@@ -921,9 +957,15 @@ async function mainloop(){
             res.send(answer);
             return;
         }
-        // update the counterpart field
+        console.log("signaturetoken",signaturetoken)
+        // update the counterpart field when coming from the creator of the document
         await connection.execute("update documents set counterpart=? where account=? and id=?",[documentaccount,account,documentid]);
+        // update the counterpart field when coming from the counterpart with valid signaturetoken
+        if(typeof signaturetoken !== 'undefined'){
+            await connection.execute("update documents set counterpart=? where signaturetoken=? and id=?",[documentaccount,signaturetoken,documentid]);
+        }
         const answer='{"answer":"OK","message":"counterpart has been updated"}';
+        console.log("answer",answer)
         //console.log(answer,account,documentaccount,documentid)
         await connection.end();
         res.send(answer);
@@ -1550,15 +1592,24 @@ async function check_token_validity(token,account,connection){
 }
 //functiont to update the status
 async function update_status_documents_drafts(account,connection){
-    const [rows, fields] = await connection.execute("select * from documents where account=? and status='draft'",[account]);
+    const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=?) and status='draft'",[account,account]);
+    console.log("********* update status drafts");
     console.log(rows);
     for(let i=0;i<rows.length;i++){
         const hash = await api.query.docSig.documents(account,rows[i].id);
         const hashstring=`${hash}`
-        //console.log("hashstring",hashstring);
+        console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
             await connection.execute("update documents set status='waiting' where id=?",[rows[i].id])
             console.log("Status changed to 'waiting' for document id:",rows[i].id);
+        }
+        console.log(rows[i].counterpart,rows[i].id);
+        const hashc = await api.query.docSig.signatures(rows[i].counterpart,rows[i].id);
+        const hashstringc=`${hashc}`
+        console.log("hashstringc",hashstringc);
+        if(hashstringc!=='0x'){
+            await connection.execute("update documents set status='waiting' where id=?",[rows[i].id])
+            console.log("Status changed to 'waiting' for document id (counterpart):",rows[i].id);
         }
     }
     return;
@@ -1569,19 +1620,17 @@ async function update_status_documents_waiting(account,connection){
     const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=?) and status='waiting'",[account,account]);
     console.log("record found: ",rows.length);
     for(let i=0;i<rows.length;i++){
-        let hash = await api.query.docSig.signatures(account,rows[i].id);
+        let hash = await api.query.docSig.documents(rows[i].account,rows[i].id);
         let hashstring=`${hash}`
-        //console.log("hashstring",hashstring);
+        console.log("hashstring",hashstring);
         if(hashstring!=='0x'){
-            await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
-            console.log("Status changed to 'completed' for document id:",rows[i].id);
-        }
-        hash = await api.query.docSig.signatures(rows[i].counterpart,rows[i].id);
-        hashstring=`${hash}`
-        //console.log("hashstring",hashstring);
-        if(hashstring!=='0x'){
-            await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
-            console.log("Status changed to 'completed' for document id:",rows[i].id);
+            hash = await api.query.docSig.signatures(rows[i].counterpart,rows[i].id);
+            hashstring=`${hash}`
+            console.log("hashstring",hashstring);
+            if(hashstring!=='0x'){
+                await connection.execute("update documents set status='approved' where id=?",[rows[i].id])
+                console.log("Status changed to 'completed' for document id:",rows[i].id);
+            }
         }
     }
     return;
