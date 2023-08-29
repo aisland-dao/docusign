@@ -1008,7 +1008,7 @@ async function mainloop(){
             return;
         }
         // make query for draft documents (sql injection is managed)
-        const [rows, fields] = await connection.execute("select * from documents where account=? and id=?",[account,documentid]);
+        const [rows, fields] = await connection.execute("select * from documents where (account=? or counterpart=?) and id=?",[account,account,documentid]);
         if(rows.length==0){
             const answer='{"answer":"KO","message":"documentid not found for the account"}';
             await connection.end();
