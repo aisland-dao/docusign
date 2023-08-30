@@ -19,11 +19,15 @@ You can use the faucet available at:
 
 ## Installation
 
-- install Nodejs following the instructions on the official website  
-- install Mariadb  
-- on Linux Ubuntu/Debian you will need build-essential package:  
+- install [Nodejs](https://nodejs.org) following the instructions on the official website  
+- install [Mariadb](https://mariadb.com)
+- on Linux Ubuntu/Debian you will need the build-essential package and git
 ```
-apt-get install build-essential
+apt-get install build-essential git
+```
+clone the repo with:  
+```
+git clone https://github.com/aisland-dao/docsig
 ```
 - create a database named: docsig with:  
 ```bash
