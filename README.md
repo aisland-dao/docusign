@@ -1,7 +1,8 @@
 # Docsig 
 A Dapp to sign and exchange documents notarized on the blockchain.
 It's based on [Substrate framework](https:/substrate.dev) for the blockchain and
-[Polkadot.js](https://polkadot.js.org/extension/) for the wallet extension.  
+[Polkadot.js](https://polkadot.js.org/extension/) or [Subwallet](https://www.subwallet.app/) for the wallets supported.  
+
   
 A live demo is available at:  
 [https://docsig.aisland.io](https://docsig.aisland.io)  
