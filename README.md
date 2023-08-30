@@ -53,7 +53,7 @@ npm install
 ```bash
 ./docsig-server.sh
 ```
-you will be able to reache the user interface browsing:  
+you will be able to reach the user interface browsing:  
 http://localhost:3000  
 
 You may install a reverse proxy like Nginx to manage the https connections.  
