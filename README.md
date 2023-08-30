@@ -65,9 +65,9 @@ A set of of unit tests on main core functions and API is avaible and requires to
 ```
 ./test.sh
 ```
-if everyworks, you should see the node server running:  
+if everything works, you should see the node server running:  
 ```
-DocSig Server - v.1.00
+DocSig Server - v.x.xx
 Listening on port tcp/3000 ....
 ```
 open a new session and execute:  
@@ -100,7 +100,7 @@ http://localhost:3000
 ```
 
 ## Build Code:
-If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js whichn
+If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js wich is the one pulled from the html files.
 
 
 ## Encryption Protocol:
