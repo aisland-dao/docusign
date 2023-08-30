@@ -10,7 +10,9 @@ The demo works on the testnet of [Aisland blockchain](https://aisland.io).
   
 You can use the faucet available at:  
 [https://testnet.aisland.io:8443](https://testnet.aisland.io:8443) to get some AISC tokens for free.  
-  
+## Architecture Workflow
+![Architecture Workflow](img-docs/docusign-workflow.png)
+
 ## Requirements:
 - [Nodejs >18.x](https://nodejs.org)  
 - [Mariadb Server](https://mariadb.org)
