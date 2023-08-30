@@ -1549,6 +1549,7 @@ async function uploadFiles(req, res) {
     // check parameters
     let account=req.body.account;
     let token=req.body.token;
+    let template=req.body.template;
     if(typeof account === 'undefined'){
         res.send('{"answer":"KO","message":"account is mandatory" }');
     }
@@ -1573,7 +1574,12 @@ async function uploadFiles(req, res) {
         const hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         const hash = hashSum.digest('hex');
-        await connection.execute('insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()',[account,req.files[i].originalname,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+        if(template=='yes'){
+            let content=fs.readFileSync('upload/'+req.files[i].filename);
+            await connection.execute('insert into templates set creator=?,description=?,content=?,dtlastupdate=now()',[account,req.files[i].originalname,content]);
+        }else{
+            await connection.execute('insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()',[account,req.files[i].originalname,req.files[i].originalname,req.files[i].filename,req.files[i].size,req.files[i].mimetype,hash]);
+        }
     }
     await connection.end();
     res.send('{"answer":"OK","message":"Successfully uploaded files" }');

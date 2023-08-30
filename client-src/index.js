@@ -67,7 +67,7 @@ let fonts=[];         // fonts array loaded from disk
 let encryptedprivatekey; //encrypted private key
 let encryptionpwd=''; //encryption password
 let api;    //used for the connection to the node
-
+let templatedoc=false;  //flag used to edit regular documents or templates
 
 let signaturetoken='';
 
@@ -1185,7 +1185,13 @@ async function documentsave(evt) {
     return;
   }
   // require a description for the file
-  let filename=prompt("Please insert a description for this document:","Draft");
+  let filename='Draft';
+  if(templatedoc){
+    filename=prompt("Please insert a description for this template:","Template 1");
+  }
+  else {
+    filename=prompt("Please insert a description for this document:","Draft");
+  }
   if(filename==null){
     return;
   }
@@ -1199,6 +1205,10 @@ async function documentsave(evt) {
   formData.append('files', blob,filename);
   formData.append('account', currentAccount.address);
   formData.append('token', currentToken);
+  if(templatedoc){
+      formData.append('template','yes' );
+      templatedoc=false;
+  }
   fetch(url, {
     method: 'POST',
     body: formData,
@@ -1234,11 +1244,13 @@ async function documentcancel(evt){
   if(typeof data.blocks[0] !== 'undefined'){
       const answer=confirm("Do you want to leave without saving?");
       if(answer==true){
+        templatedoc=false;
         render_main('drafts');
         return;
       }
   }
   else {
+    templatedoc=false;
     render_main('drafts');
     return;
   }
@@ -1280,6 +1292,7 @@ async function render_templates(tagfilterv){
   c=c+'<div class="row"><div class="col-1"> </div>'
   c=c+'<div class="col-10" id="templatelist">'
   c=c+'<select class="form-select" size="10" aria-label="size 10 select templates" id="templateslist">';
+  x=templates.length;
   for(i=0;i<x;i++){
     if(typeof tagfilterv==='undefined')
       c=c+'<option value="'+templates[i].id+'" >'+templates[i].description+'</option>';
@@ -1295,7 +1308,9 @@ async function render_templates(tagfilterv){
   c=c+'<div class="row"><div class="col">';
   
   c=c+'<center><br><button class="btn btn-primary" id="templateclone">Clone</button> ';
-  c=c+' <button class="btn btn-secondary" id="templatecancel">Cancel</button></center><br>';
+  c=c+' <button class="btn btn-secondary" id="templatecancel">Cancel</button>';
+  c=c+' <button class="btn btn-secondary" id="templateadd">Add</button></center><br>';
+
   c=c+'</div>';
   c=c+'</div>';
   
@@ -1309,6 +1324,7 @@ async function render_templates(tagfilterv){
   //docsave.param=editor;
   templatecancel.addEventListener('click',templateCancel);
   templateslist.addEventListener('click',showtemplate);
+  templateadd.addEventListener('click',templateAdd);
   // set listening for tags
   x=tags.length;
   for(i=0;i<x;i++){
@@ -1332,6 +1348,11 @@ async function templateClone(){
   let data = await  response.json();
   render_editor_document(data);
   return;
+}
+//function to add a new template
+function templateAdd(){
+  templatedoc=true;
+  render_editor_document();
 }
 // function to return to drafts from template cancellation
 function templateCancel(){
