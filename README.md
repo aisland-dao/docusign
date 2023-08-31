@@ -14,7 +14,8 @@ You can use the faucet available at:
 ![Architecture Workflow](img-docs/docusign-workflow.png)
 
 ## Requirements:
-- [Nodejs >18.x](https://nodejs.org)  
+- [Nodejs >20
+- .x](https://nodejs.org)  
 - [Mariadb Server](https://mariadb.org)
 
 ## Installation
@@ -92,13 +93,24 @@ After the test, close the first session, stopping the API server and  cleanup th
 ```
 
 ## Docker
-- Requirements: [docker composer](https://www.docker.com)
-- 
-You can run the docker containers with the following commands:  
+
+**Requirements**
+-  [docker composer](https://www.docker.com)  
+- [Nodejs >20.x](https://nodejs.org)
+
+**Installation**  
+- Install docker engine include docker compose for example for [Debian](https://docs.docker.com/engine/install/debian/)
+- Install Nodejs
+and install the dependencies with:  
 ```
 npm install
+```
+**Running**  
+You can run the docker containers with the following commands:
+```
 docker compose up -d
 ```
+** Browsing **  
 The dapp will be accessible browsing:  
 ```
 http://localhost:3000
