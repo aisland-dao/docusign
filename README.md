@@ -39,13 +39,14 @@ import the database schema with:
 ```bash
 mysql docsig < create_database_tables.sql
 ```
-create a a database user:  
+create a a database user changing the password 'your_password' in something different:  
 ```
+mysql
 CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_passord';
-GRANT ALL PRIVILEGES ON docsig.* TO 'docsig'@'localhost';
+GRANT ALL PRIVILEGES ON *.* TO 'docsig'@'localhost';
 FLUSH PRIVILEGES;
 ```
-edit the file docsig-server.sh and customize with your password.  
+edit the file docsig-server.sh and customize with your new password.  
 
 ```bash
 install the dependencies for nodejs:  
