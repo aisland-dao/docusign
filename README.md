@@ -14,7 +14,7 @@ You can use the faucet available at:
 ![Architecture Workflow](img-docs/docusign-workflow.png)
 
 ## Requirements:
-- [Nodejs >18.x](https://nodejs.org)  
+- [Nodejs >20.x](https://nodejs.org)  
 - [Mariadb Server](https://mariadb.org)
 
 ## Installation
@@ -42,8 +42,8 @@ mysql docsig < create_database_tables.sql
 create a a database user changing the password 'your_password' in something different:  
 ```
 mysql
-CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_passord';
-GRANT ALL PRIVILEGES ON *.* TO 'docsig'@'localhost';
+CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON docsig.* TO 'docsig'@'localhost';
 FLUSH PRIVILEGES;
 ```
 edit the file docsig-server.sh and customize with your new password.  
@@ -92,13 +92,24 @@ After the test, close the first session, stopping the API server and  cleanup th
 ```
 
 ## Docker
-- Requirements: [docker composer](https://www.docker.com)
-- 
-You can run the docker containers with the following commands:  
+
+**Requirements**
+-  [docker composer](https://www.docker.com)  
+- [Nodejs >20.x](https://nodejs.org)
+
+**Installation**  
+- Install docker engine include docker compose for example for [Debian](https://docs.docker.com/engine/install/debian/)
+- Install Nodejs
+and install the dependencies with:  
 ```
 npm install
+```
+**Running**  
+You can run the docker containers with the following commands:
+```
 docker compose up -d
 ```
+** Browsing **  
 The dapp will be accessible browsing:  
 ```
 http://localhost:3000
@@ -106,8 +117,8 @@ http://localhost:3000
 
 ## Substrate Pallet
 The Dapp uses a dedicated pallet named "docsig". The source code and an example of implementation in the runtime can be found on Aisland-node:  
-[Pallet docsig](https://github.com/aisland-dao/aisland-node/tree/main/pallets/docsig)
-[Runtime](https://github.com/aisland-dao/aisland-node/blob/66433f01b1ec232ca013a7d2cb8d8ca1eaebe007/runtime/src/lib.rs#L283)
+- [Pallet docsig](https://github.com/aisland-dao/aisland-node/tree/main/pallets/docsig)  
+- [Runtime Implementation](https://github.com/aisland-dao/aisland-node/blob/66433f01b1ec232ca013a7d2cb8d8ca1eaebe007/runtime/src/lib.rs#L283)  
 
 ## Build Code:
 If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js wich is the one pulled from the html files.
