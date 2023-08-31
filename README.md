@@ -14,8 +14,7 @@ You can use the faucet available at:
 ![Architecture Workflow](img-docs/docusign-workflow.png)
 
 ## Requirements:
-- [Nodejs >20
-- .x](https://nodejs.org)  
+- [Nodejs >20.x](https://nodejs.org)  
 - [Mariadb Server](https://mariadb.org)
 
 ## Installation
