@@ -21,9 +21,9 @@ You can use the faucet available at:
 
 - install [Nodejs](https://nodejs.org) following the instructions on the official website  
 - install [Mariadb](https://mariadb.com)
-- on Linux Ubuntu/Debian you will need the build-essential package and git
+- on Linux Ubuntu/Debian you will need a bunch of dependencies that you can install with:  
 ```
-apt-get install build-essential git
+apt-get install build-essential git libnss3-dev libatk1.0-dev libatk-bridge2.0-dev libcups2-dev libdrm-dev libxkbcommon-dev libxcomposite-dev libxrandr-dev libgbm-dev libpango1.0-dev libasound2-dev
 ```
 clone the repo with:  
 ```
