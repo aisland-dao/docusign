@@ -118,8 +118,8 @@ http://localhost:3000
 
 ## Substrate Pallet
 The Dapp uses a dedicated pallet named "docsig". The source code and an example of implementation in the runtime can be found on Aisland-node:  
-[Pallet docsig](https://github.com/aisland-dao/aisland-node/tree/main/pallets/docsig)
-[Runtime](https://github.com/aisland-dao/aisland-node/blob/66433f01b1ec232ca013a7d2cb8d8ca1eaebe007/runtime/src/lib.rs#L283)
+- [Pallet docsig](https://github.com/aisland-dao/aisland-node/tree/main/pallets/docsig)  
+- [Runtime Implementation](https://github.com/aisland-dao/aisland-node/blob/66433f01b1ec232ca013a7d2cb8d8ca1eaebe007/runtime/src/lib.rs#L283)  
 
 ## Build Code:
 If you wish to change the client code, you should edit the files in client-src and launch ./build.sh to rebuild the bundle.js wich is the one pulled from the html files.
