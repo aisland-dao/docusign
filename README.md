@@ -42,8 +42,8 @@ mysql docsig < create_database_tables.sql
 create a a database user changing the password 'your_password' in something different:  
 ```
 mysql
-CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_passord';
-GRANT ALL PRIVILEGES ON *.* TO 'docsig'@'localhost';
+CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_password';
+GRANT ALL PRIVILEGES ON docsig.* TO 'docsig'@'localhost';
 FLUSH PRIVILEGES;
 ```
 edit the file docsig-server.sh and customize with your new password.  
