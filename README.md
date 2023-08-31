@@ -25,6 +25,8 @@ You can use the faucet available at:
 ```
 apt-get install build-essential git libnss3-dev libatk1.0-dev libatk-bridge2.0-dev libcups2-dev libdrm-dev libxkbcommon-dev libxcomposite-dev libxrandr-dev libgbm-dev libpango1.0-dev libasound2-dev
 ```
+ATTENTION: please use a regular user for the installation and launch, since some dependencies does not run as "root" user for security.  
+
 clone the repo with:  
 ```
 git clone https://github.com/aisland-dao/docsig
