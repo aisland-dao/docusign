@@ -4,7 +4,8 @@
   "description": "docsig.aisland.io ",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "docker-start": "node docsig-server.js"
   },
   "author": "",
   "license": "ISC",
