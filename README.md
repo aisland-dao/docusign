@@ -23,7 +23,7 @@ You can use the faucet available at:
 - install [Mariadb](https://mariadb.com)
 - on Linux Ubuntu/Debian you will need a bunch of dependencies that you can install with:  
 ```
-apt-get install build-essential git libnss3-dev libatk1.0-dev libatk-bridge2.0-dev libcups2-dev libdrm-dev libxkbcommon-dev libxcomposite-dev libxrandr-dev libgbm-dev libpango1.0-dev libasound2-dev
+apt-get install build-essential git libnss3-dev libatk1.0-dev libatk-bridge2.0-dev libcups2-dev libdrm-dev libxkbcommon-dev libxcomposite-dev libxrandr-dev libgbm-dev libpango1.0-dev libasound2-dev libxdamage-dev
 ```
 ATTENTION: please use a regular user for the installation and launch, since some dependencies does not run as "root" user for security.  
 
