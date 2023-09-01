@@ -1530,7 +1530,7 @@ async function mainloop() {
             <p style="font-family: standardfont; font-size:48px">${name}</p>
             </body
             </html>`;
-      const image = await nodeHtmlToImage({ html: html });
+      const image = await nodeHtmlToImage({ html: html,puppeteerArgs:{ args: ['--no-sandbox','--disable-setuid-sandbox'] } });
       res.writeHead(200, { "Content-Type": "image/png" });
       res.end(image, "binary");
       console.log("Signature generated from font has been sent");
