@@ -568,7 +568,10 @@ document.getElementById("docsignsign").onclick = async () => {
       msg = '<div class="alert alert-danger" role="alert"><center>';
       msg =
         msg +
-        "Counterpart has not yet published the public key, he/she should configure the encryption";
+        "Counterpart has not yet published the public key, he/she should configure the encryption. ";
+      msg =
+        msg+"Please ask the counterpart to connect, click on \"Settings\" icon, click on \"Encryption\" tab, set a password,";
+      msg= msg + "click \"Save\" button and sign the transaction required";
       msg = msg + "</center></div>";
       document.getElementById("docsignmsg").innerHTML = msg;
       console.log(msg);
