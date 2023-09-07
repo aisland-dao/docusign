@@ -836,21 +836,21 @@ async function connectWallet(accountid,event) {
   }
   // in case of multiple accounts we generate a list of buttons with all the available accounts
   if (allAccounts.length > 1 &&  accountid.length==0) {
-    let c='';
+    let c='<p class="text-primary">Select account to work with:</p>';
     let i;
     for (i=0;i<allAccounts.length;i++){
       let shortaccount =
       allAccounts[i].meta.name +
       " [" +
-      allAccounts[i].address.substring(0, 5) +
+      allAccounts[i].address.substring(0, 6) +
       "..." +
-      allAccounts[i].address.substring(43) +
+      allAccounts[i].address.substring(42) +
       "]";
       c=c+'<button type="button" class="btn btn-primary" id="wallet'+i+'">'+shortaccount+'</button>';
     }
     document.getElementById("connectcol").innerHTML = c;
     //console.log(c);
-    // add listeners for each account
+    // add listeners for each account found
     for (i=0;i<allAccounts.length;i++){
         const buttonwlt = document.getElementById("wallet"+i);
         buttonwlt.addEventListener("click", connectWallet.bind(null,i.toString()));
@@ -862,15 +862,10 @@ async function connectWallet(accountid,event) {
   document.getElementById("msg").innerHTML = "";
   // inform how to change account
   if (allAccounts.length > 1) {
-    let msg = '<div class="alert alert-success" role="alert"><center>';
-    msg = msg + "Select the account to connect with:";
-    msg = msg + "</center></div>";
-    document.getElementById("msg").innerHTML = msg;
     currentAccount=allAccounts[Number(accountid)];
   }else{
     currentAccount=allAccounts[0];
   }
-  console.log("currentAccount",currentAccount);
   // set current account with clicked account
   // sign-in execution opening the wallet
   // generate a random security token
