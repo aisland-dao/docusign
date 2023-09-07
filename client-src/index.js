@@ -108,12 +108,8 @@ if (
   typeof document.getElementById("connect") !== "undefined" &&
   document.getElementById("connect") != null
 ) {
-  // connect wallet button
-  //document.getElementById("connect").onclick = () => {
-  //  connectWallet();
-  //};
   const connectwallet = document.getElementById("connect");
-  connectwallet.addEventListener("click", connectWallet);
+  connectwallet.addEventListener("click", connectWallet.bind(null,""));
 }
 // logout, remove all the session data
 document.getElementById("logout").onclick = () => {
@@ -805,8 +801,9 @@ async function writeDocumentDescription() {
 }
 // function to view a document in the browser
 //function called to connect the wallet
-async function connectWallet() {
-  //fetch the injected wallet
+async function connectWallet(accountid,event) {
+  //console.log("accountid",accountid);
+  //fetch the injected wallet and enable Web3
   let allInjected = await web3Enable("docusign.aisland.io");
   if (allInjected.length == 0) {
     //invite the user to install a wallet
@@ -826,6 +823,7 @@ async function connectWallet() {
   // returns an array of { address, meta: { name, source } }
   // meta.source contains the name of the extension that provides this account
   const allAccounts = await web3Accounts();
+  console.log("allAccounts",allAccounts);
   if (allAccounts.length == 0) {
     //invite the user to create an account
     let msg = '<div class="alert alert-warning" role="alert"><center>';
@@ -836,32 +834,51 @@ async function connectWallet() {
     document.getElementById("msg").innerHTML = msg;
     return;
   }
-  // replace the text of the connect button with the account shortened
-  currentAccount = allAccounts[lastaccountidx];
-  let shortaccount =
-    allAccounts[lastaccountidx].meta.name +
-    " [" +
-    allAccounts[lastaccountidx].address.substring(0, 5) +
-    "..." +
-    allAccounts[lastaccountidx].address.substring(43) +
-    "]";
-  document.getElementById("connect").innerHTML = shortaccount;
+  // in case of multiple accounts we generate a list of buttons with all the available accounts
+  if (allAccounts.length > 1 &&  accountid.length==0) {
+    let c='';
+    let i;
+    for (i=0;i<allAccounts.length;i++){
+      let shortaccount =
+      allAccounts[i].meta.name +
+      " [" +
+      allAccounts[i].address.substring(0, 5) +
+      "..." +
+      allAccounts[i].address.substring(43) +
+      "]";
+      c=c+'<button type="button" class="btn btn-primary" id="wallet'+i+'">'+shortaccount+'</button>';
+    }
+    document.getElementById("connectcol").innerHTML = c;
+    //console.log(c);
+    // add listeners for each account
+    for (i=0;i<allAccounts.length;i++){
+        const buttonwlt = document.getElementById("wallet"+i);
+        buttonwlt.addEventListener("click", connectWallet.bind(null,i.toString()));
+    }
+    return;
+  }
+  
   //remove messages if any
   document.getElementById("msg").innerHTML = "";
   // inform how to change account
   if (allAccounts.length > 1) {
     let msg = '<div class="alert alert-success" role="alert"><center>';
-    msg = msg + "Click again on the button for the next account";
+    msg = msg + "Select the account to connect with:";
     msg = msg + "</center></div>";
     document.getElementById("msg").innerHTML = msg;
-    if (lastaccountidx < allAccounts.length - 1) {
-      lastaccountidx = lastaccountidx + 1;
-    } else {
-      lastaccountidx = 0;
-    }
+    currentAccount=allAccounts[Number(accountid)];
+  }else{
+    currentAccount=allAccounts[0];
   }
+  console.log("currentAccount",currentAccount);
+  // set current account with clicked account
+  // sign-in execution opening the wallet
   // generate a random security token
-  //To guarantee enough performance, implementations are not using a truly random number generator, but they are using a pseudo-random number generator seeded with a value with enough entropy. The pseudo-random number generator algorithm (PRNG) may vary across user agents, but is suitable for cryptographic purposes. https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
+  // To guarantee enough performance, implementations are not using a truly 
+  // random number generator, but they are using a pseudo-random number 
+  // generator seeded with a value with enough entropy. The pseudo-random number 
+  // generator algorithm (PRNG) may vary across user agents, but is suitable for 
+  // cryptographic purposes. https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
   let token = bytestohex(window.crypto.getRandomValues(new Uint8Array(32)));
   // finds an injector for an address
   //const injector = await web3FromSource(currentAccount.meta.source);
