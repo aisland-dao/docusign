@@ -1919,7 +1919,7 @@ async function render_encryption() {
   c = c + '<h5 style="text-align: center">Configure Encryption</h5>';
   c = c + "<hr>";
   c = c + "</div></div>";
-  // get private key of available
+  // get private key if available
   const params = {
     account: currentAccount.address,
     token: currentToken,
@@ -1929,6 +1929,14 @@ async function render_encryption() {
   url = url + `?${qs.stringify(params)}`;
   const response = await fetch(url, { method: "GET" });
   let aj = await response.json();
+  // check for public key
+  if(aj.encryptionkey!=""){
+    const publickey = await api.query.docSig.encryptionPublicKeys(currentAccount.address);
+    if(publickey.length==0){
+      console.log("Missing public key, restarting the process for encryption");
+      aj.encryptionkey="";
+    }
+  }
   if (aj.answer == "KO" || aj.encryptionkey == "") {
     if (aj.message == "Token is not valid") {
       await show_error(aj.message);
