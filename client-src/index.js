@@ -161,6 +161,33 @@ document.getElementById("docview").onclick = async () => {
     }
   }
 };
+document.getElementById("docpdf").onclick = async () => {
+  if (currentDocumentId > 0) {
+    const blob = await api.query.docSig.blobs(
+      currentAccount.address,
+      currentDocumentId,
+      1
+    );
+    if (blob.length > 0) {
+      let docUrl = await download_blob(blob);
+      // download the file
+      window.open(docUrl);
+      return;
+    } else {
+      const params = {
+        account: currentAccount.address,
+        token: currentToken,
+        documentid: currentDocumentId,
+        pdf: 'true'
+      };
+
+      let url =
+        window.location.protocol + "//" + window.location.host + "/docview";
+      url = url + `?${qs.stringify(params)}`;
+      window.open(url);
+    }
+  }
+};
 // actions on documents
 // document download
 document.getElementById("docdownload").onclick = async () => {
