@@ -399,15 +399,17 @@ async function mainloop() {
     const token = req.query.token;
     const account = req.query.account;
     const documentid = req.query.documentid;
+    const pdf = req.query.pdf;
+    const pt = req.query.pt; 	// public vew token
     // check security token
-    if (typeof token === "undefined") {
+    if (typeof token === "undefined" && typeof pt === 'undefined') {
       console.log("ERROR: Missing token in request docview");
       const answer = '{"answer":"KO","message":"token is mandatory"}';
       res.send(answer);
       return;
     }
     // check account
-    if (typeof account === "undefined") {
+    if (typeof account === "undefined" && typeof pt === 'undefined') {
       console.log("ERROR: Missing account in request docview");
       const answer = '{"answer":"KO","message":"account is mandatory"}';
       res.send(answer);
@@ -421,22 +423,33 @@ async function mainloop() {
       return;
     }
     let connection = await opendb();
-    // check validity of the security token for the requested account
-    const isValidToken = await check_token_validity(token, account, connection);
-    if (!isValidToken) {
-      const answer = '{"answer":"KO","message":"Token is not valid"}';
-      await connection.end();
-      res.send(answer);
-      return;
+    let rows;
+    let fields;
+    if(typeof pt === 'undefined'){
+      // check validity of the security token for the requested account
+      const isValidToken = await check_token_validity(token, account, connection);
+      if (!isValidToken) {
+        const answer = '{"answer":"KO","message":"Token is not valid"}';
+        await connection.end();
+        res.send(answer);
+        return;
+      }
+      // make query for  document (sql injection is managed)
+      [rows, fields] = await connection.execute(
+        "select * from documents where (account=? or counterpart=?) and id=?",
+        [account, account, documentid]
+      );
+    }else {
+      // make query for documents (sql injection is managed)
+      console.log("pt:",pt,"documentid",documentid);
+      [rows, fields] = await connection.execute(
+        "select * from documents where publicviewtoken=? and id=?",
+        [pt, documentid]
+      );
     }
-    // make query for draft documents (sql injection is managed)
-    const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? or counterpart=?) and id=?",
-      [account, account, documentid]
-    );
     if (rows.length == 0) {
       const answer =
-        '{"answer":"KO","message":"documentid not found for the account"}';
+        '{"answer":"KO","message":"documentid not found"}';
       await connection.end();
       res.send(answer);
       return;
@@ -466,8 +479,18 @@ async function mainloop() {
       const contentFile = fs.readFileSync(fileNameDcs);
       const contentFileObj = JSON.parse(contentFile.toString());
       //console.log("contentFileObj",contentFileObj);
-      const html = edjsParser.parse(contentFileObj);
-      //console.log("html",html);
+      let html='';
+      if (typeof pdf !== 'undefined')
+         html='<head><script src="js/html2pdf.bundle.min.js"></script></head><body>';
+      html=html+'<div id="dcsdoc">';
+      html = html+edjsParser.parse(contentFileObj);
+      html=html+"</div>";
+      if (typeof pdf !== 'undefined') {
+        html=html+'</body><script>';
+        html=html+'html2pdf(document.getElementById("dcsdoc"));';
+        html=html+'</script>';
+      }
+      console.log("html",html);
       let optionsDcs = {
         headers: {
           "Content-Type": "text/html",
@@ -1711,8 +1734,10 @@ async function uploadFiles(req, res) {
         [account, req.files[i].originalname, content]
       );
     } else {
+      //generate public view token
+      let publicviewtoken = crypto.randomBytes(32).toString("hex");
       await connection.execute(
-        "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now()",
+        "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?",
         [
           account,
           req.files[i].originalname,
@@ -1721,6 +1746,7 @@ async function uploadFiles(req, res) {
           req.files[i].size,
           req.files[i].mimetype,
           hash,
+          publicviewtoken,
         ]
       );
     }
