@@ -460,7 +460,7 @@ async function mainloop() {
       // convert the file to html for rendering
       // Initialize the parser
       //console.log("special processing for .dcs");
-      const edjsParser = edjsHTML();
+      const edjsParser = edjsHTML({signature: signatureParser});
       const fileNameDcs = "upload/" + rows[0].urlfile;
       //console.log("fileNameDcs:",fileNameDcs);
       const contentFile = fs.readFileSync(fileNameDcs);
@@ -2021,3 +2021,7 @@ async function opendb() {
   });
   return connection;
 }
+// custom parser for signature rendering in dcs files
+  function signatureParser(block){
+    return `<img src="${block.data.url}" alt="${block.data.caption}">`;
+  }
