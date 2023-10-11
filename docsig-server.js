@@ -400,7 +400,7 @@ async function mainloop() {
     const account = req.query.account;
     const documentid = req.query.documentid;
     const pdf = req.query.pdf;
-    const pt = req.query.pt; 	// public vew token
+    const pt = req.query.pt; 	// public view token
     // check security token
     if (typeof token === "undefined" && typeof pt === 'undefined') {
       console.log("ERROR: Missing token in request docview");
@@ -526,6 +526,71 @@ async function mainloop() {
         return;
       }
     });
+  });
+  // public view of a document for verification (using a security token
+  app.get("/docverify", async function (req, res) {
+    // parameters required
+    const documentid = req.query.documentid;
+    const pt = req.query.pt; 	// public view token
+    // check documentid
+    if (typeof documentid === "undefined") {
+      console.log("ERROR: Missing documentid in request docverify");
+      const answer = '{"answer":"KO","message":"documentid is mandatory"}';
+      res.send(answer);
+      return;
+    }
+    if (typeof pt === "undefined") {
+      console.log("ERROR: Missing public token in request docverify");
+      const answer = '{"answer":"KO","message":"pt is mandatory"}';
+      res.send(answer);
+      return;
+    }
+    let connection = await opendb();
+    // make query for documents (sql injection is managed)
+    const [rows, fields] = await connection.execute(
+        "select * from documents where publicviewtoken=? and id=?",
+        [pt, documentid]
+      );
+    if (rows.length == 0) {
+      const answer =
+        '<h1>Document not found</h1>';
+      await connection.end();
+      res.send(answer);
+      return;
+    }
+    // render the document verification view
+    
+    let c='<html><head><meta charset="utf-8">';
+    c=c+'<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">';
+    c=c+'<title>Aisland - DocSig</title>';
+    c=c+'<script src="/js/bootstrap.bundle.min.js"></script>';
+    c=c+'<link rel="stylesheet" href="/css/bootstrap.min.css">';
+    c=c+'<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">';
+    c=c+'</head><body>';
+    c=c+'<div class="container-fluid">'
+    c=c+'<div class="row"><div class="col-3"></div>';
+    c=c+'<div class="col-6"><div class="card">';
+    c=c+'<center><img src="img/logo.png" height="100px" width="100px"></center>';
+    c=c+'<div class="card-body">';
+    c=c+'<h5 class="card-title">Document Verification</h5>';
+    c=c+'<p class="card-text">This is the public verification of the following document:</p>';
+    c=c+'<table class="table table-striped-columns">';
+    c=c+`<tr><td><i class="bi bi-speedometer"></i> Status:</td><td>${rows[0].status}</td></tr>`;
+    c=c+`<tr><td><i class="bi bi-tag"></i> Description:</td><td>${rows[0].description} </td></tr>`;
+    let lastupdate=rows[0].dtlastupdate;
+    c=c+'<tr><td><i class="bi bi-calendar2-event"></i> Last Update:</td><td>'+lastupdate+'</td></tr>';
+    c=c+'</table>';
+    c=c+'<center><h4>Signed by:</h4></center>';
+    c=c+'<table class="table table-striped">';   
+    c=c+'<tr><td>Account</td></tr>';
+    c=c+`<tr><td>${rows[0].account}</td><td></td>`;
+    c=c+`<td>${rows[0].counterpart}</td></tr>`
+    c=c+'</table>';
+    let dv='/docview?pt='+pt+'&documentid='+documentid;
+    c=c+'<a href="'+dv+'" class="btn btn-primary">View</a>';
+    c=c+'</div></div></div></div></div></body></html>';
+    res.send(c);
+    await connection.end();
   });
   // template view
   app.get("/templateview", async function (req, res) {
