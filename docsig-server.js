@@ -591,8 +591,8 @@ async function mainloop() {
     c=c+'<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">';
     c=c+'</head><body>';
     c=c+'<div class="container-fluid">'
-    c=c+'<div class="row"><div class="col-3"></div>';
-    c=c+'<div class="col-6"><div class="card">';
+    //c=c+'<div class="row"><div class="col-2"></div>';
+    c=c+'<div class="col"><div class="card" style="width: 33rem;">';
     c=c+'<center><img src="img/logo.png" height="100px" width="100px"></center>';
     c=c+'<div class="card-body">';
     c=c+'<h5 class="card-title">Document Verification</h5>';
