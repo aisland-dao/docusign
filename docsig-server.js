@@ -14,6 +14,8 @@ const edjsHTML = require("editorjs-html");
 // html->png for signature generation from font
 const nodeHtmlToImage = require("node-html-to-image");
 const { encodeToDataUrl } = require("node-font2base64");
+const QRCode = require('qrcode');
+
 let api;
 const provider = new WsProvider("wss://testnet.aisland.io");
 
@@ -26,6 +28,7 @@ const DB_USER = process.env.DB_USER;
 const DB_PWD = process.env.DB_PWD;
 const WALLET = process.env.WALLET;
 const FEES = process.env.FEES;
+const BASEURL=process.env.BASEURL;
 
 // set default to local host if not set
 if (typeof DB_HOST === "undefined") {
@@ -56,6 +59,14 @@ if (typeof DB_PWD === "undefined") {
   console.log(
     Date.now(),
     "[Error] the environment variable DB_PWD is not set."
+  );
+  process.exit(1);
+}
+// BASEURL is mandatory
+if (typeof BASEURL === "undefined") {
+  console.log(
+    Date.now(),
+    "[Error] the environment variable BASEURL is not set."
   );
   process.exit(1);
 }
@@ -485,6 +496,18 @@ async function mainloop() {
       html=html+'<div id="dcsdoc">';
       html = html+edjsParser.parse(contentFileObj);
       html=html+"</div>";
+      // add qr code for public verification
+      let qrurl=BASEURL+"/docverify?pt="+rows[0].publicviewtoken+"&documentid="+documentid;
+      let qrimg='';
+      try {
+         qrimg= await QRCode.toDataURL(qrurl);
+      }catch(e){
+        console.log("Error in qrcode generation:",e);
+      }
+      if(qrimg.length>0){
+        html=html+"<hr>You can verify the authenticity of the this document on blockchain, scanning the following qrcode:<br>";
+        html=html+'<img src="'+qrimg+'">';
+      }
       if (typeof pdf !== 'undefined') {
         html=html+'</body><script>';
         html=html+'html2pdf(document.getElementById("dcsdoc"));';

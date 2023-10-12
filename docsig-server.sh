@@ -5,6 +5,7 @@ export DB_HOST="localhost"
 export DB_NAME="docsig"
 export DB_USER="docsig"
 export DB_PWD="your_password"
+export BASEURL="https://docsig.aisland.io"
 # you can create a user in mysql with:
 # CREATE USER 'docsig'@'localhost' IDENTIFIED BY 'your_password';
 # GRANT ALL PRIVILEGES ON docsig.* TO 'docsig'@'localhost';
