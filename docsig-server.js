@@ -15,7 +15,6 @@ const edjsHTML = require("editorjs-html");
 const nodeHtmlToImage = require("node-html-to-image");
 const { encodeToDataUrl } = require("node-font2base64");
 const QRCode = require('qrcode');
-
 let api;
 const provider = new WsProvider("wss://testnet.aisland.io");
 
@@ -513,7 +512,7 @@ async function mainloop() {
         html=html+'html2pdf(document.getElementById("dcsdoc"));';
         html=html+'</script>';
       }
-      console.log("html",html);
+      //console.log("html",html);
       let optionsDcs = {
         headers: {
           "Content-Type": "text/html",
@@ -653,8 +652,8 @@ async function mainloop() {
     }
     // make query for templates (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from templates where id=?",
-      [documentid]
+      "select * from templates where id=? and (private='N' or creator=?)",
+      [documentid,account]
     );
     if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"documentid not found"}';
@@ -706,7 +705,7 @@ async function mainloop() {
     }
     // check account
     if (typeof account === "undefined") {
-      console.log("ERROR: Missing account in request docview");
+      console.log("ERROR: Missing account in request templatedata");
       const answer = '{"answer":"KO","message":"account is mandatory"}';
       res.send(answer);
       return;
@@ -729,8 +728,8 @@ async function mainloop() {
     }
     // make query for templates (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from templates where id=?",
-      [documentid]
+      "select * from templates where id=? and (private='N' or creator=?)",
+      [documentid,account]
     );
     if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"documentid not found"}';
@@ -990,10 +989,9 @@ async function mainloop() {
     }
     // make query to get templates
     const [rows, fields] = await connection.execute(
-      "select * from templates order by description"
-    );
+      "select * from templates where private='N' or creator=? order by description",[account]);
     // send the back the records in json format
-    console.log("templates:", JSON.stringify(rows));
+    //console.log("templates:", JSON.stringify(rows));
     await connection.end();
     res.send(JSON.stringify(rows));
     return;
@@ -1027,9 +1025,7 @@ async function mainloop() {
       return;
     }
     // make query to get templates
-    const [rows, fields] = await connection.execute(
-      "select tags from templates"
-    );
+    const [rows, fields] = await connection.execute("select tags from templates where private='N' or creator=?",[account]);
     // send the back the records in json format
     const tags = getUniqueTags(rows);
     await connection.end();
@@ -1791,6 +1787,8 @@ async function uploadFiles(req, res) {
   let account = req.body.account;
   let token = req.body.token;
   let template = req.body.template;
+  let documentid = req.body.documentid;
+  let templateid= req.body.templateid;
   if (typeof account === "undefined") {
     res.send('{"answer":"KO","message":"account is mandatory" }');
   }
@@ -1817,16 +1815,27 @@ async function uploadFiles(req, res) {
     const hash = hashSum.digest("hex");
     if (template == "yes") {
       let content = fs.readFileSync("upload/" + req.files[i].filename);
-      await connection.execute(
-        "insert into templates set creator=?,description=?,content=?,dtlastupdate=now()",
-        [account, req.files[i].originalname, content]
-      );
+        // new template
+      if(templateid==0){
+        await connection.execute(
+          "insert into templates set creator=?,description=?,content=?,dtlastupdate=now()",
+          [account, req.files[i].originalname, content]
+          );
+      }else {
+        console.log("update template",templateid);
+        await connection.execute(
+          "update templates set description=?,content=?,dtlastupdate=now() where id=? and creator=?",
+          [req.files[i].originalname, content,templateid,account]
+          );
+      }
     } else {
-      //generate public view token
-      let publicviewtoken = crypto.randomBytes(32).toString("hex");
-      await connection.execute(
-        "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?",
-        [
+      // new document
+      if(documentid==0){
+        //generate public view token
+        let publicviewtoken = crypto.randomBytes(32).toString("hex");
+        await connection.execute(
+          "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?",
+          [
           account,
           req.files[i].originalname,
           req.files[i].originalname,
@@ -1835,8 +1844,24 @@ async function uploadFiles(req, res) {
           req.files[i].mimetype,
           hash,
           publicviewtoken,
-        ]
-      );
+          ]
+        );
+     } else {
+       //update document
+       await connection.execute("update documents set description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where id=? and account=?",
+          [
+          req.files[i].originalname,
+          req.files[i].originalname,
+          req.files[i].filename,
+          req.files[i].size,
+          req.files[i].mimetype,
+          hash,
+          documentid,
+          account
+          ]
+        );
+     }
+     
     }
   }
   await connection.end();

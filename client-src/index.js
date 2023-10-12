@@ -69,7 +69,10 @@ let currentAccount = "";
 let currentToken = "";
 let dropArea;
 let documentsJSON = [];
+let templatesJSON = [];
 let currentDocumentId = 0;
+let currentDocumentData;
+let currentTemplateId=0;
 let actionsModal = new bootstrap.Modal("#documentActions", { focus: true });
 let signDocumentModal = new bootstrap.Modal("#signDocument", { focus: true });
 let fontsFlag = false; //used to avoid multiple loading of the fonts
@@ -1205,9 +1208,17 @@ async function documentactions(e) {
   //actionsModal = new bootstrap.Modal('#documentActions', {focus: true})
   actionsModal.show();
 }
+//function to return the document data from the array in ram
 function get_document_data(id) {
   for (let i = 0; i < documentsJSON.length; i++) {
     if (documentsJSON[i].id == id) return documentsJSON[i];
+  }
+  return {};
+}
+//function to return the template data from the array in ram
+function get_template_data(id) {
+  for (let i = 0; i < templatesJSON.length; i++) {
+    if (templatesJSON[i].id == id) return templatesJSON[i];
   }
   return {};
 }
@@ -1344,6 +1355,8 @@ function render_file_upload() {
 }
 //function to render a document UI
 function render_editor_document(docdata) {
+  currentDocumentData=docdata;
+  console.log("currentDocumentData edit",currentDocumentData);
   let c = '<div class="row">';
   c =
     c +
@@ -1471,26 +1484,48 @@ async function documentsave(evt) {
   let data = await editor.save();
   // in case of empyt doc leave without saving
   if (typeof data.blocks[0] === "undefined") {
-    render_main("drafts");
+    if(templatedoc)
+      render_templates();
+    else
+      render_main("drafts");
     return;
+  }
+  //load desc from document data
+  let descdoc='Draft';
+  if(templatedoc)
+    descdoc='Template 1';
+  if (currentDocumentId > 0 && !templatedoc) {
+    let docdata = get_document_data(currentDocumentId);
+    if(typeof docdata!== 'undefined'){
+      if(typeof docdata.description !== 'undefined')
+        descdoc=docdata.description;
+    }
+  }
+  if (currentTemplateId > 0 && templatedoc) {
+    let docdata = get_template_data(currentTemplateId);
+    if(typeof docdata!== 'undefined'){
+      if(typeof docdata.description !== 'undefined')
+        descdoc=docdata.description;
+    }
   }
   // require a description for the file
   let filename = "Draft";
   if (templatedoc) {
     filename = prompt(
       "Please insert a description for this template:",
-      "Template 1"
+      descdoc
     );
   } else {
     filename = prompt(
       "Please insert a description for this document:",
-      "Draft"
+      descdoc
     );
   }
   if (filename == null) {
     return;
   }
-  filename = filename + ".dcs";
+  if(! filename.includes(".dcs"))
+    filename = filename + ".dcs";
   data = JSON.stringify(data);
   let url = window.location.protocol + "//" + window.location.host + "/upload";
   let formData = new FormData();
@@ -1500,9 +1535,11 @@ async function documentsave(evt) {
   formData.append("files", blob, filename);
   formData.append("account", currentAccount.address);
   formData.append("token", currentToken);
+  formData.append("documentid", currentDocumentId);
+  formData.append("templateid", currentTemplateId);
+  console.log("currentDocumentId",currentDocumentId);
   if (templatedoc) {
     formData.append("template", "yes");
-    templatedoc = false;
   }
   fetch(url, {
     method: "POST",
@@ -1523,7 +1560,12 @@ async function documentsave(evt) {
       msg = msg + "Documents have been uploaded successfully";
       msg = msg + "</center></div>";
       document.getElementById("msg").innerHTML = msg;
-      render_main("drafts");
+      if(templatedoc){
+        templatedoc=false;
+        render_templates();
+      } else {
+        render_main("drafts");
+      }
       return;
     })
     .catch((e) => {
@@ -1541,8 +1583,12 @@ async function documentcancel(evt) {
   if (typeof data.blocks[0] !== "undefined") {
     const answer = confirm("Do you want to leave without saving?");
     if (answer == true) {
-      templatedoc = false;
-      render_main("drafts");
+      if(templatedoc){
+        templatedoc = false;
+        render_templates();
+      }
+      else 
+        render_main("drafts");
       return;
     }
   } else {
@@ -1595,6 +1641,8 @@ async function render_templates(tagfilterv) {
   url = window.location.protocol + "//" + window.location.host + "/templates";
   response = await fetch(url + `?${qs.stringify(params)}`, { method: "GET" });
   let templates = await response.json();
+  // set global var for later reuse
+  templatesJSON=templates;
   // templates' listbox
   c = c + '<div class="row"><div class="col-1"> </div>';
   c = c + '<div class="col-10" id="templatelist">';
@@ -1636,8 +1684,10 @@ async function render_templates(tagfilterv) {
     ' <button class="btn btn-secondary" id="templatecancel">Cancel</button>';
   c =
     c +
-    ' <button class="btn btn-secondary" id="templateadd">Add</button></center><br>';
-
+    ' <button class="btn btn-primary" id="templateadd">Add</button>';
+  c =
+    c +
+    ' <button class="btn btn-primary" id="templateedit">Edit</button></center><br>';  
   c = c + "</div>";
   c = c + "</div>";
 
@@ -1652,6 +1702,8 @@ async function render_templates(tagfilterv) {
   templatecancel.addEventListener("click", templateCancel);
   templateslist.addEventListener("click", showtemplate);
   templateadd.addEventListener("click", templateAdd);
+  templateedit.addEventListener("click", templateEdit);
+  //templateadd.addEventListener("click", templateAdd);
   // set listening for tags
   x = tags.length;
   for (i = 0; i < x; i++) {
@@ -1683,12 +1735,34 @@ async function templateClone() {
   });
   let data = await response.json();
   render_editor_document(data);
+  currentTemplateId=0;
   return;
 }
 //function to add a new template
 function templateAdd() {
   templatedoc = true;
+  currentTemplateId=0;
   render_editor_document();
+}
+//function to edit a  template
+async function templateEdit() {
+  // read select id from
+  let id = document.getElementById("templateslist").value;
+  // fetch docdata of the template
+  const params = {
+    account: currentAccount.address,
+    token: currentToken,
+    documentid: id,
+  };
+  const url =
+    window.location.protocol + "//" + window.location.host + "/templatedata";
+  let response = await fetch(url + `?${qs.stringify(params)}`, {
+    method: "GET",
+  });
+  let data = await response.json();
+  templatedoc = true;
+  render_editor_document(data);
+  currentTemplateId=id;
 }
 // function to return to drafts from template cancellation
 function templateCancel() {
