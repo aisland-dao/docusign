@@ -507,7 +507,7 @@ document.getElementById("docsignview").onclick = async () => {
   }
 };
 // actions on documents
-// document sign
+// document signining, this is the most complex function
 document.getElementById("docsignsign").onclick = async () => {
   await _sodium.ready;
   const sodium = _sodium;
@@ -531,6 +531,7 @@ document.getElementById("docsignsign").onclick = async () => {
     document.getElementById("docsignmsg").innerHTML = msg;
     //const injector = await web3FromSource(currentAccount.meta.source);
     console.log("currentAccount.address", currentAccount.address);
+    //load injector
     let injector;
     try {
       injector = await web3FromAddress(currentAccount.address);
@@ -543,7 +544,6 @@ document.getElementById("docsignsign").onclick = async () => {
       console.log("allAccounts", allAccounts);
       injector = await web3FromAddress(currentAccount.address);
     }
-    console.log("injector", injector);
     if (currentAccount.address == docdata.account) {
       //check for document already signed
       const hash = await api.query.docSig.documents(
@@ -559,7 +559,7 @@ document.getElementById("docsignsign").onclick = async () => {
         return;
       }
     } else {
-      //check for document already signed
+      //check for document already signed from the same account
       const hash = await api.query.docSig.signatures(
         currentAccount.address,
         currentDocumentId
@@ -577,54 +577,60 @@ document.getElementById("docsignsign").onclick = async () => {
         return;
       }
     }
-    //check for counterpart address
-    let counterpart = "";
+    // load the counterparts in an array
+    let cpb=document.getElementById("counterpart").value;
+    let counterparts=cpb.split("\n");
+    let counterpart='';
     let counterpartdb = "";
-    if (docdata.account == currentAccount.address) {
-      counterpart = document.getElementById("counterpart").value;
-      counterpartdb = counterpart;
-    } else {
-      counterpart = docdata.account;
-      counterpartdb = currentAccount.address;
+    let publickeyCounterparts=[];
+    for(counterpart of counterparts) {
+        //check for counterpart addresses
+        if (docdata.account == currentAccount.address) {
+          counterpartdb = counterpart;
+        } else {
+          counterpart = docdata.account;
+          counterpartdb = currentAccount.address;
+        }
+        // verify the validity of the counterpart address
+        if (!isValidAddress(counterpart)) {
+          msg = '<div class="alert alert-danger" role="alert"><center>';
+          msg = msg + "Counterpart address is not valid: "+counterpart;
+          msg = msg + "</center></div>";
+          document.getElementById("docsignmsg").innerHTML = msg;
+          console.log(msg);
+          return;
+        }
+        // verify the counterpart is different from the current address
+        if (counterpart == currentAccount.address) {
+          msg = '<div class="alert alert-danger" role="alert"><center>';
+          msg =
+            msg + "Counterpart address must be different from the document creator";
+          msg = msg + "</center></div>";
+          document.getElementById("docsignmsg").innerHTML = msg;
+          console.log(msg);
+          return;
+        }
+        // verify the counterpart has published the public key for encryption
+        // the public key is published when the account configure the encryption password and sign the transaction for such purpose.
+        let publickeyCounterpartb = (
+          await api.query.docSig.encryptionPublicKeys(counterpart)
+        ).toHuman();
+        if (publickeyCounterpartb.length == 0) {
+          msg = '<div class="alert alert-danger" role="alert"><center>';
+          msg =
+            msg +
+            "Counterpart: "+counterpart+" has not yet published the public key, he/she should configure the encryption. ";
+          msg =
+            msg+"Please ask the counterpart to connect, click on \"Settings\" icon, click on \"Encryption\" tab, set a password,";
+          msg= msg + "click \"Save\" button and sign the transaction required";
+          msg = msg + "</center></div>";
+          document.getElementById("docsignmsg").innerHTML = msg;
+          console.log(msg);
+          return;
+        }
+        // add the public key to the counter parts array 
+        publickeyCounterparts.push(hexToU8a(publickeyCounterpartb));
     }
-    // verify the validity of the counterpart address
-    if (!isValidAddress(counterpart)) {
-      msg = '<div class="alert alert-danger" role="alert"><center>';
-      msg = msg + "Counterpart address is not valid";
-      msg = msg + "</center></div>";
-      document.getElementById("docsignmsg").innerHTML = msg;
-      console.log(msg);
-      return;
-    }
-    // verify the counterpart is different from the current address
-    if (counterpart == currentAccount.address) {
-      msg = '<div class="alert alert-danger" role="alert"><center>';
-      msg =
-        msg + "Counterpart address must be different from the document creator";
-      msg = msg + "</center></div>";
-      document.getElementById("docsignmsg").innerHTML = msg;
-      console.log(msg);
-      return;
-    }
-    // verify the counterpart has published the public key for encryption
-    // the public key is published when the account configure the encryption password and sign the transaction for such purpose.
-    let publickeyCounterpart = (
-      await api.query.docSig.encryptionPublicKeys(counterpart)
-    ).toHuman();
-    if (publickeyCounterpart.length == 0) {
-      msg = '<div class="alert alert-danger" role="alert"><center>';
-      msg =
-        msg +
-        "Counterpart has not yet published the public key, he/she should configure the encryption. ";
-      msg =
-        msg+"Please ask the counterpart to connect, click on \"Settings\" icon, click on \"Encryption\" tab, set a password,";
-      msg= msg + "click \"Save\" button and sign the transaction required";
-      msg = msg + "</center></div>";
-      document.getElementById("docsignmsg").innerHTML = msg;
-      console.log(msg);
-      return;
-    }
-    publickeyCounterpart = hexToU8a(publickeyCounterpart);
 
     // get encryption private key (which is encrypted against a password)
     // the encrypted private key is stored on the server for data exchange between browsers
@@ -683,33 +689,45 @@ document.getElementById("docsignsign").onclick = async () => {
     }
     // set the global var to reuse
     encryptionpwd = password;
-    //update counterpart on the document table
-    params = {
-      account: currentAccount.address,
-      token: currentToken,
-      signaturetoken: signaturetoken,
-      documentaccount: counterpartdb,
-      documentid: currentDocumentId,
-    };
-    url =
-      window.location.protocol +
-      "//" +
-      window.location.host +
-      "/updatedocumentcounterpart";
-    console.log("url", url);
-    const response = await fetch(url + `?${qs.stringify(params)}`, {
-      method: "GET",
-    });
-    let answerJSON = await response.json();
-    console.log("answerJSON", answerJSON);
-    if (answerJSON.answer == "KO") {
-      await show_error(answerJSON.message);
-      return;
+    //
+    //update counterparts on the document table
+    for(counterpart of counterparts) {
+      if (docdata.account == currentAccount.address) {
+        counterpartdb = counterpart;
+      } else {
+        counterpart = docdata.account;
+        counterpartdb = currentAccount.address;
+      }
+        //update counterparts on the document table
+        params = {
+          account: currentAccount.address,
+          token: currentToken,
+          signaturetoken: signaturetoken,
+          documentaccount: counterpartdb,
+          documentid: currentDocumentId,
+        };
+        url =
+          window.location.protocol +
+          "//" +
+          window.location.host +
+          "/updatedocumentcounterpart";
+        console.log("url", url);
+        const response = await fetch(url + `?${qs.stringify(params)}`, {
+          method: "GET",
+        });
+        let answerJSON = await response.json();
+        console.log("answerJSON", answerJSON);
+        if (answerJSON.answer == "KO") {
+          await show_error(answerJSON.message);
+          return;
+        }
     }
+    //************************************************/
     //sign the document
+    //************************************************/
     let signdocument;
     let blob;
-    // check if the first signer or not
+    // check if the creator signer or not
     if (currentAccount.address == docdata.account) {
       // check for selected storage on blockchain
       if (document.getElementById("storageblockchain").checked) {
@@ -742,19 +760,20 @@ document.getElementById("docsignsign").onclick = async () => {
         // generate the key pair
         const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
         const keyspair = sodium.crypto_box_seed_keypair(seedkeys);
-        // encrypt the binary data
+        //encrypt the document for each counter part
+        let txs = [api.tx.docSig.newDocument(currentDocumentId, "0x" + docdata.hash)];
+        // encrypt the binary data with the counterparts public keys including the signer
+        const pkc=publickeyCounterparts.push(keyspair.publicKey);
         const encryptedab = await encrypt_asymmetric_stream(
           ab,
           keyspair.privateKey,
           keyspair.publicKey,
-          [publickeyCounterpart, keyspair.publicKey]
+          pkc
         );
-        const blobb64 = arrayBufferToBase64(encryptedab);
+        const blobb64=arrayBufferToBase64(encryptedab);
         // use utility pallet to store the document and sign the hash in one call
-        const txs = [
-          api.tx.docSig.newDocument(currentDocumentId, "0x" + docdata.hash),
-          api.tx.docSig.newBlob(currentDocumentId, 1, blobb64),
-        ];
+        txs.push(api.tx.docSig.newBlob(currentDocumentId, 1, blobb64));
+        //object to sign
         signdocument = api.tx.utility.batch(txs);
       } else {
         // proceed with the signature with the straight call to sign the hash

@@ -182,8 +182,8 @@ async function mainloop() {
     await update_status_documents_drafts(account, connection);
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? and status='draft') or (signaturetoken=? and status='draft') or (counterpart=? and status='draft') order by dtlastupdate desc",
-      [account, signaturetoken, account]
+      "select * from documents where (account=? and status='draft') or (signaturetoken=? and status='draft') or (counterpart=? and status='draft') or (othercounterparts like ? and status='draft')  order by dtlastupdate desc",
+      [account, signaturetoken, account,'%'+account+'%']
     );
     // send the back the records in json format
     await connection.end();
@@ -227,8 +227,8 @@ async function mainloop() {
     console.log("account: ", account, "signaturetoken: ", signaturetoken);
     // make query for waiting documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? and status='waiting') or (signaturetoken=? and status='waiting') or (counterpart=? and status='waiting') order by dtlastupdate desc",
-      [account, signaturetoken, account]
+      "select * from documents where (account=? and status='waiting') or (signaturetoken=? and status='waiting') or (counterpart=? and status='waiting') or (othercounterparts like ? and status='waiting')  order by dtlastupdate desc",
+      [account, signaturetoken, account,'%'+account+'%']
     );
     console.log(JSON.stringify(rows));
     // send the back the records in json format
@@ -304,8 +304,8 @@ async function mainloop() {
     }
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? or counterpart=?) and status='approved' order by dtlastupdate desc",
-      [account, account]
+      "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and status='approved' order by dtlastupdate desc",
+      [account, account,'%'+account+'%']
     );
     // send the back the records in json format
     await connection.end();
@@ -394,8 +394,8 @@ async function mainloop() {
     }
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? or counterpart=? or signaturetoken=?) and status='rejected' order by dtlastupdate desc",
-      [account, account, signaturetoken]
+      "select * from documents where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and status='rejected' order by dtlastupdate desc",
+      [account, account, '%'+account+'%',signaturetoken]
     );
     // send the back the records in json format
     console.log("documentsrejected:", JSON.stringify(rows));
@@ -446,8 +446,8 @@ async function mainloop() {
       }
       // make query for  document (sql injection is managed)
       [rows, fields] = await connection.execute(
-        "select * from documents where (account=? or counterpart=?) and id=?",
-        [account, account, documentid]
+        "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and id=?",
+        [account, account,'%'+account+'%', documentid]
       );
     }else {
       // make query for documents (sql injection is managed)
@@ -605,9 +605,17 @@ async function mainloop() {
     c=c+'<center><h4>Signed by:</h4></center>';
     c=c+'<table class="table table-striped">';   
     c=c+'<tr><td>Account</td></tr>';
-    c=c+`<tr><td>${rows[0].account}</td><td></td>`;
-    c=c+`<td>${rows[0].counterpart}</td></tr>`
+    c=c+`<tr><td>${rows[0].account}</td></tr>`;
+    c=c+`<tr><td>${rows[0].counterpart}</td></tr>`
+    //console.log(rows[0]);
+    if(rows[0].othercounterparts !== null){
+      let cp=rows[0].othercounterparts.split(",");
+      for(let i=0;i<cp.length;i++){
+        c=c+`<tr><td>${cp[i]}</td></tr>`
+      }
+    }
     c=c+'</table>';
+      
     let dv='/docview?pt='+pt+'&documentid='+documentid;
     c=c+'<a href="'+dv+'" class="btn btn-primary">View</a>';
     c=c+'</div></div></div></div></div></body></html>';
@@ -863,8 +871,8 @@ async function mainloop() {
     }
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? or counterpart=? or signaturetoken=?) and id=? and status='waiting'",
-      [account, account, signaturetoken, documentid]
+      "select * from documents where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and id=? and status='waiting'",
+      [account, account, signaturetoken,'%'+account+'%', documentid]
     );
     if (rows.length == 0) {
       const answer =
@@ -881,8 +889,8 @@ async function mainloop() {
 
     // reject
     await connection.execute(
-      "update documents set status='rejected' where (account=? or counterpart=? or signaturetoken=?) and id=? and status='waiting'",
-      [account, account, signaturetoken, documentid]
+      "update documents set status='rejected' where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and id=? and status='waiting'",
+      [account, account, signaturetoken,'%'+account+'%', documentid]
     );
     //return message to client
     const answer = '{"answer":"OK","message":"document rejected"}';
@@ -1101,7 +1109,7 @@ async function mainloop() {
     res.send(answer);
     return;
   });
-  // function to update the document description
+  // function to update the counterpart
   app.get("/updatedocumentcounterpart", async function (req, res) {
     // parameters required
     const token = req.query.token;
@@ -1161,18 +1169,34 @@ async function mainloop() {
       res.send(answer);
       return;
     }
-    console.log("signaturetoken", signaturetoken);
-    // update the counterpart field when coming from the creator of the document
-    await connection.execute(
-      "update documents set counterpart=? where account=? and id=?",
-      [documentaccount, account, documentid]
-    );
-    // update the counterpart field when coming from the counterpart with valid signaturetoken
-    if (typeof signaturetoken !== "undefined") {
+    // read the document data to establis where to write the counterpart
+    const [rows,fields]= await connection.execute("select * from documents where (account=? or signaturetoken=?) and id=?",[account,signaturetoken,documentid]);
+    if(rows.length==0){
+      const answer = '{"answer":"KO","message":"document not found"}';
+      console.log("answwer",answer);
+      res.send(answer);
+      connection.end();
+      return;
+    }
+    // write the counterpart in the main field
+    if(rows[0].counterpart==documentaccount || rows[0].counterpart==''){
+      // update the counterpart field when coming from the creator of the document
       await connection.execute(
-        "update documents set counterpart=? where signaturetoken=? and id=?",
-        [documentaccount, signaturetoken, documentid]
-      );
+      "update documents set counterpart=? where (account=?  or signaturetoken=?) and id=?",
+        [documentaccount, account, signaturetoken,documentid]
+      );    
+    } else {
+      // or write to the other counterparts field
+      if(!rows[0].othercounterparts.includes(documentaccount)){
+        let ocp='';
+        if(rows[0].othercounterparts.length>0)
+          ocp=ocp+',';
+        ocp=ocp+documentaccount;
+        await connection.execute(
+        "update documents set othercounterparts=? where (account=?  or signaturetoken=?) and id=?",
+          [ocp, account, signaturetoken,documentid]
+        ); 
+      }
     }
     const answer = '{"answer":"OK","message":"counterpart has been updated"}';
     console.log("answer", answer);
@@ -1219,8 +1243,8 @@ async function mainloop() {
     }
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-      "select * from documents where (account=? or counterpart=?) and id=?",
-      [account, account, documentid]
+      "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and id=?",
+      [account, account,'%'+account+'%', documentid]
     );
     if (rows.length == 0) {
       const answer =
@@ -1834,7 +1858,7 @@ async function uploadFiles(req, res) {
         //generate public view token
         let publicviewtoken = crypto.randomBytes(32).toString("hex");
         await connection.execute(
-          "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?",
+          "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?,othercounterparts=''",
           [
           account,
           req.files[i].originalname,
@@ -1888,8 +1912,8 @@ async function check_token_validity(token, account, connection) {
 //functiont to update the status
 async function update_status_documents_drafts(account, connection) {
   const [rows, fields] = await connection.execute(
-    "select * from documents where (account=? or counterpart=?) and status='draft'",
-    [account, account]
+    "select * from documents where (account=? or counterpart=? or  othercounterparts like ?) and status='draft'",
+    [account, account,'%'+account+'%',]
   );
   console.log("********* update status drafts");
   console.log(rows);
@@ -1928,27 +1952,42 @@ async function update_status_documents_drafts(account, connection) {
 async function update_status_documents_waiting(account, connection) {
   console.log("Checking for approved change");
   const [rows, fields] = await connection.execute(
-    "select * from documents where (account=? or counterpart=?) and status='waiting'",
-    [account, account]
+    "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and status='waiting'",
+    [account, account,'%'+account+'%']
   );
   console.log("record found: ", rows.length);
   for (let i = 0; i < rows.length; i++) {
+    // check for signature of the document creator
     let hash = await api.query.docSig.documents(rows[i].account, rows[i].id);
-    let hashstring = `${hash}`;
-    console.log("hashstring", hashstring);
-    if (hashstring !== "0x") {
+    let hashstringa = `${hash}`;
+    //console.log("hashstring", hashstring);
+    // check for the signature of the main counterpart
+    if (hashstringa !== "0x") {
       hash = await api.query.docSig.signatures(rows[i].counterpart, rows[i].id);
-      hashstring = `${hash}`;
-      console.log("hashstring", hashstring);
-      if (hashstring !== "0x") {
-        await connection.execute(
-          "update documents set status='approved' where id=?",
-          [rows[i].id]
-        );
-        console.log(
-          "Status changed to 'completed' for document id:",
-          rows[i].id
-        );
+      let hashstringb = `${hash}`;
+      let hashstringc=`${hash}`;
+      if (hashstringb !== "0x") {
+        //check for other counterparts
+        if(rows[i].othercounterparts.length>0){
+            let ocps=rows[i].othercounterparts.split(",");
+            for (ocp of ocps){
+              hash = await api.query.docSig.signatures(ocp, rows[i].id);
+              hashstringc=`${hash}`;
+              if(hashstringc=='0x')
+                break;
+            }        
+        }
+        //change status in case of all parts have signed the document
+        if(hashstringc!='0x') {
+          await connection.execute(
+            "update documents set status='approved' where id=?",
+            [rows[i].id]
+          );
+          console.log(
+            "Status changed to 'completed' for document id:",
+            rows[i].id
+          );
+        }
       }
     }
   }
