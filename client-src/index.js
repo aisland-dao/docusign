@@ -333,15 +333,36 @@ document.getElementById("docsign").onclick = async () => {
     let cp = "";
     if (docdata.account == currentAccount.address) {
       // add field for counterpart account (we need it now to encrypt the document for the counterpart)
+      /*
       cp =
         '<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="' +
         docdata.counterpart +
         '" required >';
+      */
+      cp='<textarea class="form-control" id="counterpart" rows="4">';
+      cp=cp+docdata.counterpart;
+      if(docdata.othercounterparts!=null){
+        let cps=docdata.othercounterparts.split(",");
+        for(let i=0;i<cps.length;i++)
+          cp=cp+"\n"+cps[i];
+      }
+      cp=cp+'</textarea>';
     } else {
-      cp =
+      /*cp =
         '<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="' +
         docdata.account +
-        '" disabled >';
+        '" disabled >';*/
+      cp='<textarea class="form-control" id="counterpart" rows="4" disabled>';
+      cp=cp+docdata.account;
+      if( docdata.counterpart!=currentAccount.address)
+        cp=cp+"\n"+docdata.counterpart;
+      if(docdata.othercounterparts!=null){
+        let cps=docdata.othercounterparts.split(",");
+        for(let i=0;i<cps.length;i++)
+          if(cps[i]!=currentAccount.address)
+            cp=cp+"\n"+cps[i];
+      }
+      cp=cp+'</textarea>';
     }
     document.getElementById("docsigncounterpart").innerHTML = cp;
     document.getElementById("docsignmsg").innerHTML = "";
@@ -748,7 +769,7 @@ document.getElementById("docsignsign").onclick = async () => {
         "0x" + docdata.hash
       );
     }
-    //const transferExtrinsic = api.tx.balances.transfer('5C5555yEXUcmEJ5kkcCMvdZjUo7NGJiQJMS7vZXEeoMhj3VQ', 123456);
+    //sign document
     signdocument
       .signAndSend(
         currentAccount.address,
