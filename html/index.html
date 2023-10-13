@@ -132,6 +132,31 @@
       </div>
     </div>
   </div>
+  <!-- Modal LinkShare -->
+   <div class="modal fade" id="linkShare" tabindex="-1" aria-labelledby="linkShareLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title" id="linkShareLabel">Signature Link</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+        <div class="card" style="text-align: center">        
+            <img class="card-img-top" src="" id="qrcodelinkshare">
+             <div class="card-body">
+             <p class="card-text">This is the signing url to share with your counterpart. It has been copied to the clipboard:</p>
+             <p> <input type="text" id="urllinkshare" value="" size="45"></p>
+             <a href="#" id="emaillinkshare" target="_blank"><img src="img/emaillogo.png" width="64" height="64"></a>
+             <a href="#" id="telegramlinkshare" target="_blank"><img src="img/telegramlogo.png" width="64" height="64"></a>
+             <a href="#" id="whatsapplinkshare" target="_blank"><img src="img/whatsapplogo.png" width="64" height="64"></a>
+             <a href="#" id="elementlinkshare" target="_blank"><img src="img/elementlogo.png" width="64" height="64"></a>
+             </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Modal Sign Document-->
   <div class="modal fade" id="signDocument" tabindex="-1" aria-labelledby="signDocumentLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -146,7 +171,7 @@
             <tr><td>File Name</td><td id="docsignfilename"></td></tr>
             <tr><td>Size</td><td id="docsignsize"></td></tr>
             <tr><td>Your Account:</td><td id="docsignmycounterpart"></td></tr>
-            <tr><td>Counterpart:</td><td id="docsigncounterpart"></td></tr>
+            <tr><td>Counterpart(s):</td><td id="docsigncounterpart"></td></tr>
             <tr><td>Password:</td><td>
             <input class="form-control" type="password" placeholder="Encryption Password" aria-label="default input password" id="password" required >
             </td></tr>

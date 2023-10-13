@@ -75,6 +75,7 @@ let currentDocumentData;
 let currentTemplateId=0;
 let actionsModal = new bootstrap.Modal("#documentActions", { focus: true });
 let signDocumentModal = new bootstrap.Modal("#signDocument", { focus: true });
+let linkshareModal = new bootstrap.Modal("#linkShare", { focus: true });
 let fontsFlag = false; //used to avoid multiple loading of the fonts
 let nrFonts = 0; // the number of fonts loaded
 let fonts = []; // fonts array loaded from disk
@@ -441,8 +442,26 @@ document.getElementById("doclink").onclick = async () => {
       "/sign/?signaturetoken=" +
       answerJSON.signaturetoken;
     //render_main('waiting');
-    const text = "This is the signing url to share with your counterpart:";
-    prompt(text, url);
+    //const text = "This is the signing url to share with your counterpart:";
+    //prompt(text, url);
+    actionsModal.hide();
+    //set the input field value
+    let uls=document.getElementById("urllinkshare");
+    uls.value=url; 
+    uls.focus();
+    uls.select();
+    uls.setSelectionRange(0, 99999); // For mobile devices
+    navigator.clipboard.writeText(uls.value);
+    let turl;
+    turl="element://vector/webapp/";
+    document.getElementById("elementlinkshare").href=turl;
+    turl="mailto:?body="+url;
+    document.getElementById("emaillinkshare").href=turl;
+    turl="https://api.whatsapp.com/send?text="+url;    
+    document.getElementById("whatsapplinkshare").href=turl;
+    turl="https://telegram.me/share/url?url="+url;
+    document.getElementById("telegramlinkshare").href=turl;
+    linkshareModal.show();
   }
 };
 // document sign reject
@@ -1245,7 +1264,7 @@ async function documentactions(e) {
   const d = await get_document_data(id);
   document.getElementById("documentActionsLabel").innerHTML = d.description;
   //open the modal
-  //actionsModal = new bootstrap.Modal('#documentActions', {focus: true})
+  //actionsModal = new bootstrap.Modal('#documentActionsc', {focus: true})
   actionsModal.show();
 }
 //function to return the document data from the array in ram
