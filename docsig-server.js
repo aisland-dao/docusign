@@ -494,7 +494,6 @@ async function mainloop() {
          html='<head><script src="js/html2pdf.bundle.min.js"></script></head><body>';
       html=html+'<div id="dcsdoc">';
       html = html+edjsParser.parse(contentFileObj);
-      html=html+"</div>";
       // add qr code for public verification
       let qrurl=BASEURL+"/docverify?pt="+rows[0].publicviewtoken+"&documentid="+documentid;
       let qrimg='';
@@ -507,9 +506,13 @@ async function mainloop() {
         html=html+"<hr>You can verify the authenticity of the this document on blockchain, scanning the following qrcode:<br>";
         html=html+'<img src="'+qrimg+'">';
       }
+      html=html+"</div>";
       if (typeof pdf !== 'undefined') {
         html=html+'</body><script>';
-        html=html+'html2pdf(document.getElementById("dcsdoc"));';
+        html=html+'const epdf  = document.getElementById("dcsdoc");'
+        html=html+'const opt={margin:5};';
+        html=html+'html2pdf().set(opt).from(epdf).save();'
+        //html=html+'html2pdf(document.getElementById("dcsdoc"));';
         html=html+'</script>';
       }
       //console.log("html",html);
