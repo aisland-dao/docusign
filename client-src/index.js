@@ -782,12 +782,13 @@ document.getElementById("docsignsign").onclick = async () => {
         //encrypt the document for each counter part
         let txs = [api.tx.docSig.newDocument(currentDocumentId, "0x" + docdata.hash)];
         // encrypt the binary data with the counterparts public keys including the signer
-        const pkc=publickeyCounterparts.push(keyspair.publicKey);
+        publickeyCounterparts.push(keyspair.publicKey);
+        console.log("publickeyCounterparts",publickeyCounterparts);
         const encryptedab = await encrypt_asymmetric_stream(
           ab,
           keyspair.privateKey,
           keyspair.publicKey,
-          pkc
+          publickeyCounterparts
         );
         const blobb64=arrayBufferToBase64(encryptedab);
         // use utility pallet to store the document and sign the hash in one call
@@ -1140,12 +1141,15 @@ async function render_main(section) {
   c = c + "</table>";
   c = c + "</div></div>";
   // show cards option if empty
-  if (documentsJSON.length == 0) {
-    c =
-      c +
-      '<div class="row  justify-content-center align-items-center" style="text-align: center">';
-    c = c + '<div class="col-12"><h4>*** No documents found ***</h4><hr>';
-    c = c + "</div></div>";
+  if (documentsJSON.length <=10) {
+    if (documentsJSON.length ==0) {
+      c =
+        c +
+        '<div class="row  justify-content-center align-items-center" style="text-align: center">';
+        c = c + '<div class="col-12"><h4>*** No documents found ***</h4><hr>';
+        c = c + "</div></div>";
+    }
+    
     c =
       c +
       '<div class="row  justify-content-center align-items-center" style="text-align: center">';
@@ -3085,9 +3089,11 @@ function isUint8ArrayEqual(arr1, arr2) {
 async function download_blob(blob) {
   await _sodium.ready;
   const sodium = _sodium;
-  //console.log("Blob found on chain:",blob);
+  console.log("Blob found on chain:",blob);
   const blobb64 = u8aToString(blob);
+  console.log("Blob found on chain base64:",blobb64);
   const blobenc = base64ToUint8Array(blobb64);
+  console.log("Blob found on chain uitn8array:",blobenc);
   //if the encrypted key is not loaded already in the current session
   if (typeof encryptedprivatekey === "undefined") {
     // get encryption private key (which is encrypted against a password)
@@ -3129,9 +3135,11 @@ async function download_blob(blob) {
     encryptionpwd = "";
     return;
   }
+  console.log("mnemonicPhrase",mnemonicPhrase);
   // generate the key pair from the mnemonic phrase
   const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
   const keyspair = sodium.crypto_box_seed_keypair(seedkeys);
+  console.log("keyspair",keyspair);
   //decrypt the encrypted blob
   let doc = await decrypt_asymmetric_stream(
     blobenc,
