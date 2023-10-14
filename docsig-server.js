@@ -483,17 +483,22 @@ async function mainloop() {
       // convert the file to html for rendering
       // Initialize the parser
       //console.log("special processing for .dcs");
-      const edjsParser = edjsHTML({signature: signatureParser});
+      //const edjsParser = edjsHTML({signature: signatureParser});
+      const edjsParser = edjsHTML();
       const fileNameDcs = "upload/" + rows[0].urlfile;
       //console.log("fileNameDcs:",fileNameDcs);
       const contentFile = fs.readFileSync(fileNameDcs);
       const contentFileObj = JSON.parse(contentFile.toString());
-      //console.log("contentFileObj",contentFileObj);
+      //console.log("contentFile",contentFile);
       let html='';
       if (typeof pdf !== 'undefined')
          html='<head><script src="js/html2pdf.bundle.min.js"></script></head><body>';
       html=html+'<div id="dcsdoc">';
-      html = html+edjsParser.parse(contentFileObj);
+      let htmp=edjsParser.parse(contentFileObj);
+      //console.log(htmp);
+      //htmp=htmp.replaceAll('</p>,<p ','</p><p ');
+      for(h of htmp)
+        html = html+h+"\n";
       // add qr code for public verification
       let qrurl=BASEURL+"/docverify?pt="+rows[0].publicviewtoken+"&documentid="+documentid;
       let qrimg='';
