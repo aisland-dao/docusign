@@ -14,7 +14,7 @@ const edjsHTML = require("editorjs-html");
 // html->png for signature generation from font
 const nodeHtmlToImage = require("node-html-to-image");
 const { encodeToDataUrl } = require("node-font2base64");
-const QRCode = require('qrcode');
+const QRCode = require("qrcode");
 let api;
 const provider = new WsProvider("wss://testnet.aisland.io");
 
@@ -27,13 +27,13 @@ const DB_USER = process.env.DB_USER;
 const DB_PWD = process.env.DB_PWD;
 const WALLET = process.env.WALLET;
 const FEES = process.env.FEES;
-const BASEURL=process.env.BASEURL;
+const BASEURL = process.env.BASEURL;
 
 // set default to local host if not set
 if (typeof DB_HOST === "undefined") {
   console.log(
     Date.now(),
-    "[Error] the environment variable DB_HOST is not set."
+    "[Error] the environment variable DB_HOST is not set.",
   );
   process.exit(1);
 }
@@ -41,7 +41,7 @@ if (typeof DB_HOST === "undefined") {
 if (typeof DB_NAME === "undefined") {
   console.log(
     Date.now(),
-    "[Error] the environment variable DB_NAME is not set."
+    "[Error] the environment variable DB_NAME is not set.",
   );
   process.exit(1);
 }
@@ -49,7 +49,7 @@ if (typeof DB_NAME === "undefined") {
 if (typeof DB_USER === "undefined") {
   console.log(
     Date.now(),
-    "[Error] the environment variable DB_USER is not set."
+    "[Error] the environment variable DB_USER is not set.",
   );
   process.exit(1);
 }
@@ -57,7 +57,7 @@ if (typeof DB_USER === "undefined") {
 if (typeof DB_PWD === "undefined") {
   console.log(
     Date.now(),
-    "[Error] the environment variable DB_PWD is not set."
+    "[Error] the environment variable DB_PWD is not set.",
   );
   process.exit(1);
 }
@@ -65,7 +65,7 @@ if (typeof DB_PWD === "undefined") {
 if (typeof BASEURL === "undefined") {
   console.log(
     Date.now(),
-    "[Error] the environment variable BASEURL is not set."
+    "[Error] the environment variable BASEURL is not set.",
   );
   process.exit(1);
 }
@@ -84,7 +84,7 @@ async function mainloop() {
     api.rpc.system.version(),
   ]);
   console.log(
-    "Connected to: " + chain + " - " + nodeName + " - " + nodeVersion
+    "Connected to: " + chain + " - " + nodeName + " - " + nodeVersion,
   );
   // main page is dex.html with a permannet redirect
   app.get("/", async function (req, res) {
@@ -102,14 +102,14 @@ async function mainloop() {
       if (isValid == false) {
         console.log("ERROR: Invalid Signature");
         res.send(
-          '{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}'
+          '{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}',
         );
         return;
       }
     } catch (e) {
       console.log("ERROR: Invalid Signature:", e);
       res.send(
-        '{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}'
+        '{"answer":"KO","message":"The signature is not matching the account, please check your configuration."}',
       );
       return;
     }
@@ -119,7 +119,7 @@ async function mainloop() {
     // check for the same account in the table
     const [rows, fields] = await connection.execute(
       "select * from users where account=?",
-      [account]
+      [account],
     );
     let signaturetoken = "";
     if (rows.length == 0) {
@@ -127,12 +127,12 @@ async function mainloop() {
       signaturetoken = randomtoken;
       await connection.execute(
         "insert into users set account=?,token=?,dttoken=now(),signaturetoken=?",
-        [account, token, randomtoken]
+        [account, token, randomtoken],
       );
     } else {
       await connection.execute(
         "update users set token=?,dttoken=now() where account=?",
-        [token, account]
+        [token, account],
       );
       signaturetoken = rows[0].signaturetoken;
     }
@@ -183,7 +183,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? and status='draft') or (signaturetoken=? and status='draft') or (counterpart=? and status='draft') or (othercounterparts like ? and status='draft')  order by dtlastupdate desc",
-      [account, signaturetoken, account,'%'+account+'%']
+      [account, signaturetoken, account, "%" + account + "%"],
     );
     // send the back the records in json format
     await connection.end();
@@ -228,7 +228,7 @@ async function mainloop() {
     // make query for waiting documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? and status='waiting') or (signaturetoken=? and status='waiting') or (counterpart=? and status='waiting') or (othercounterparts like ? and status='waiting')  order by dtlastupdate desc",
-      [account, signaturetoken, account,'%'+account+'%']
+      [account, signaturetoken, account, "%" + account + "%"],
     );
     console.log(JSON.stringify(rows));
     // send the back the records in json format
@@ -267,7 +267,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where account=? and status='action' order by dtlastupdate desc",
-      [account]
+      [account],
     );
     // send the back the records in json format
     await connection.end();
@@ -305,7 +305,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and status='approved' order by dtlastupdate desc",
-      [account, account,'%'+account+'%']
+      [account, account, "%" + account + "%"],
     );
     // send the back the records in json format
     await connection.end();
@@ -395,7 +395,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and status='rejected' order by dtlastupdate desc",
-      [account, account, '%'+account+'%',signaturetoken]
+      [account, account, "%" + account + "%", signaturetoken],
     );
     // send the back the records in json format
     console.log("documentsrejected:", JSON.stringify(rows));
@@ -410,16 +410,16 @@ async function mainloop() {
     const account = req.query.account;
     const documentid = req.query.documentid;
     const pdf = req.query.pdf;
-    const pt = req.query.pt; 	// public view token
+    const pt = req.query.pt; // public view token
     // check security token
-    if (typeof token === "undefined" && typeof pt === 'undefined') {
+    if (typeof token === "undefined" && typeof pt === "undefined") {
       console.log("ERROR: Missing token in request docview");
       const answer = '{"answer":"KO","message":"token is mandatory"}';
       res.send(answer);
       return;
     }
     // check account
-    if (typeof account === "undefined" && typeof pt === 'undefined') {
+    if (typeof account === "undefined" && typeof pt === "undefined") {
       console.log("ERROR: Missing account in request docview");
       const answer = '{"answer":"KO","message":"account is mandatory"}';
       res.send(answer);
@@ -435,9 +435,13 @@ async function mainloop() {
     let connection = await opendb();
     let rows;
     let fields;
-    if(typeof pt === 'undefined'){
+    if (typeof pt === "undefined") {
       // check validity of the security token for the requested account
-      const isValidToken = await check_token_validity(token, account, connection);
+      const isValidToken = await check_token_validity(
+        token,
+        account,
+        connection,
+      );
       if (!isValidToken) {
         const answer = '{"answer":"KO","message":"Token is not valid"}';
         await connection.end();
@@ -447,19 +451,18 @@ async function mainloop() {
       // make query for  document (sql injection is managed)
       [rows, fields] = await connection.execute(
         "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and id=?",
-        [account, account,'%'+account+'%', documentid]
+        [account, account, "%" + account + "%", documentid],
       );
-    }else {
+    } else {
       // make query for documents (sql injection is managed)
-      console.log("pt:",pt,"documentid",documentid);
+      console.log("pt:", pt, "documentid", documentid);
       [rows, fields] = await connection.execute(
         "select * from documents where publicviewtoken=? and id=?",
-        [pt, documentid]
+        [pt, documentid],
       );
     }
     if (rows.length == 0) {
-      const answer =
-        '{"answer":"KO","message":"documentid not found"}';
+      const answer = '{"answer":"KO","message":"documentid not found"}';
       await connection.end();
       res.send(answer);
       return;
@@ -490,35 +493,42 @@ async function mainloop() {
       const contentFile = fs.readFileSync(fileNameDcs);
       const contentFileObj = JSON.parse(contentFile.toString());
       //console.log("contentFile",contentFile);
-      let html='';
-      if (typeof pdf !== 'undefined')
-         html='<head><script src="js/html2pdf.bundle.min.js"></script></head><body>';
-      html=html+'<div id="dcsdoc">';
-      let htmp=edjsParser.parse(contentFileObj);
+      let html = "";
+      if (typeof pdf !== "undefined")
+        html =
+          '<head><script src="js/html2pdf.bundle.min.js"></script></head><body>';
+      html = html + '<div id="dcsdoc">';
+      let htmp = edjsParser.parse(contentFileObj);
       //console.log(htmp);
       //htmp=htmp.replaceAll('</p>,<p ','</p><p ');
-      for(h of htmp)
-        html = html+h+"\n";
+      for (h of htmp) html = html + h + "\n";
       // add qr code for public verification
-      let qrurl=BASEURL+"/docverify?pt="+rows[0].publicviewtoken+"&documentid="+documentid;
-      let qrimg='';
+      let qrurl =
+        BASEURL +
+        "/docverify?pt=" +
+        rows[0].publicviewtoken +
+        "&documentid=" +
+        documentid;
+      let qrimg = "";
       try {
-         qrimg= await QRCode.toDataURL(qrurl);
-      }catch(e){
-        console.log("Error in qrcode generation:",e);
+        qrimg = await QRCode.toDataURL(qrurl);
+      } catch (e) {
+        console.log("Error in qrcode generation:", e);
       }
-      if(qrimg.length>0){
-        html=html+"<hr>You can verify the authenticity of the this document on blockchain, scanning the following qrcode:<br>";
-        html=html+'<img src="'+qrimg+'">';
+      if (qrimg.length > 0) {
+        html =
+          html +
+          "<hr>You can verify the authenticity of the this document on blockchain, scanning the following qrcode:<br>";
+        html = html + '<img src="' + qrimg + '">';
       }
-      html=html+"</div>";
-      if (typeof pdf !== 'undefined') {
-        html=html+'</body><script>';
-        html=html+'const epdf  = document.getElementById("dcsdoc");'
-        html=html+'const opt={margin:5};';
-        html=html+'html2pdf().set(opt).from(epdf).save();'
+      html = html + "</div>";
+      if (typeof pdf !== "undefined") {
+        html = html + "</body><script>";
+        html = html + 'const epdf  = document.getElementById("dcsdoc");';
+        html = html + "const opt={margin:5};";
+        html = html + "html2pdf().set(opt).from(epdf).save();";
         //html=html+'html2pdf(document.getElementById("dcsdoc"));';
-        html=html+'</script>';
+        html = html + "</script>";
       }
       //console.log("html",html);
       let optionsDcs = {
@@ -561,7 +571,7 @@ async function mainloop() {
   app.get("/docverify", async function (req, res) {
     // parameters required
     const documentid = req.query.documentid;
-    const pt = req.query.pt; 	// public view token
+    const pt = req.query.pt; // public view token
     // check documentid
     if (typeof documentid === "undefined") {
       console.log("ERROR: Missing documentid in request docverify");
@@ -578,55 +588,70 @@ async function mainloop() {
     let connection = await opendb();
     // make query for documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
-        "select * from documents where publicviewtoken=? and id=?",
-        [pt, documentid]
-      );
+      "select * from documents where publicviewtoken=? and id=?",
+      [pt, documentid],
+    );
     if (rows.length == 0) {
-      const answer =
-        '<h1>Document not found</h1>';
+      const answer = "<h1>Document not found</h1>";
       await connection.end();
       res.send(answer);
       return;
     }
     // render the document verification view
-    
-    let c='<html><head><meta charset="utf-8">';
-    c=c+'<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">';
-    c=c+'<title>Aisland - DocSig</title>';
-    c=c+'<script src="/js/bootstrap.bundle.min.js"></script>';
-    c=c+'<link rel="stylesheet" href="/css/bootstrap.min.css">';
-    c=c+'<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">';
-    c=c+'</head><body>';
-    c=c+'<div class="container-fluid">'
+
+    let c = '<html><head><meta charset="utf-8">';
+    c =
+      c +
+      '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">';
+    c = c + "<title>Aisland - DocSig</title>";
+    c = c + '<script src="/js/bootstrap.bundle.min.js"></script>';
+    c = c + '<link rel="stylesheet" href="/css/bootstrap.min.css">';
+    c =
+      c +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">';
+    c = c + "</head><body>";
+    c = c + '<div class="container-fluid">';
     //c=c+'<div class="row"><div class="col-2"></div>';
-    c=c+'<div class="col"><div class="card" style="width: 33rem;">';
-    c=c+'<center><img src="img/logo.png" height="100px" width="100px"></center>';
-    c=c+'<div class="card-body">';
-    c=c+'<h5 class="card-title">Document Verification</h5>';
-    c=c+'<p class="card-text">This is the public verification of the following document:</p>';
-    c=c+'<table class="table table-striped-columns">';
-    c=c+`<tr><td><i class="bi bi-speedometer"></i> Status:</td><td>${rows[0].status}</td></tr>`;
-    c=c+`<tr><td><i class="bi bi-tag"></i> Description:</td><td>${rows[0].description} </td></tr>`;
-    let lastupdate=rows[0].dtlastupdate;
-    c=c+'<tr><td><i class="bi bi-calendar2-event"></i> Last Update:</td><td>'+lastupdate+'</td></tr>';
-    c=c+'</table>';
-    c=c+'<center><h4>Signed by:</h4></center>';
-    c=c+'<table class="table table-striped">';   
-    c=c+'<tr><td>Account</td></tr>';
-    c=c+`<tr><td>${rows[0].account}</td></tr>`;
-    c=c+`<tr><td>${rows[0].counterpart}</td></tr>`
+    c = c + '<div class="col"><div class="card" style="width: 33rem;">';
+    c =
+      c +
+      '<center><img src="img/logo.png" height="100px" width="100px"></center>';
+    c = c + '<div class="card-body">';
+    c = c + '<h5 class="card-title">Document Verification</h5>';
+    c =
+      c +
+      '<p class="card-text">This is the public verification of the following document:</p>';
+    c = c + '<table class="table table-striped-columns">';
+    c =
+      c +
+      `<tr><td><i class="bi bi-speedometer"></i> Status:</td><td>${rows[0].status}</td></tr>`;
+    c =
+      c +
+      `<tr><td><i class="bi bi-tag"></i> Description:</td><td>${rows[0].description} </td></tr>`;
+    let lastupdate = rows[0].dtlastupdate;
+    c =
+      c +
+      '<tr><td><i class="bi bi-calendar2-event"></i> Last Update:</td><td>' +
+      lastupdate +
+      "</td></tr>";
+    c = c + "</table>";
+    c = c + "<center><h4>Signed by:</h4></center>";
+    c = c + '<table class="table table-striped">';
+    c = c + "<tr><td>Account</td></tr>";
+    c = c + `<tr><td>${rows[0].account}</td></tr>`;
+    c = c + `<tr><td>${rows[0].counterpart}</td></tr>`;
     //console.log(rows[0]);
-    if(rows[0].othercounterparts !== null){
-      let cp=rows[0].othercounterparts.split(",");
-      for(let i=0;i<cp.length;i++){
-        c=c+`<tr><td>${cp[i]}</td></tr>`
+    if (rows[0].othercounterparts !== null) {
+      let cp = rows[0].othercounterparts.split(",");
+      for (let i = 0; i < cp.length; i++) {
+        c = c + `<tr><td>${cp[i]}</td></tr>`;
       }
     }
-    c=c+'</table>';
-      
-    let dv='/docview?pt='+pt+'&documentid='+documentid;
-    c=c+'<a href="'+dv+'" class="btn btn-primary">View</a>';
-    c=c+'</div></div></div></div></div></body></html>';
+    c = c + "</table>";
+
+    let dv = "/docview?pt=" + pt + "&documentid=" + documentid;
+    c = c + '<a href="' + dv + '" class="btn btn-primary">View</a>';
+    c = c + "</div></div></div></div></div></body></html>";
     res.send(c);
     await connection.end();
   });
@@ -669,7 +694,7 @@ async function mainloop() {
     // make query for templates (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from templates where id=? and (private='N' or creator=?)",
-      [documentid,account]
+      [documentid, account],
     );
     if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"documentid not found"}';
@@ -745,7 +770,7 @@ async function mainloop() {
     // make query for templates (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from templates where id=? and (private='N' or creator=?)",
-      [documentid,account]
+      [documentid, account],
     );
     if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"documentid not found"}';
@@ -811,7 +836,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where account=? and id=? and status='draft'",
-      [account, documentid]
+      [account, documentid],
     );
     if (rows.length == 0) {
       const answer =
@@ -828,7 +853,7 @@ async function mainloop() {
     // delete the record
     await connection.execute(
       "delete from documents where account=? and id=? and status='draft'",
-      [account, documentid]
+      [account, documentid],
     );
     //return message to client
     const answer = '{"answer":"OK","message":"document deleted"}';
@@ -880,7 +905,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and id=? and status='waiting'",
-      [account, account, signaturetoken,'%'+account+'%', documentid]
+      [account, account, signaturetoken, "%" + account + "%", documentid],
     );
     if (rows.length == 0) {
       const answer =
@@ -898,7 +923,7 @@ async function mainloop() {
     // reject
     await connection.execute(
       "update documents set status='rejected' where (account=? or counterpart=? or signaturetoken=? or othercounterparts like ?) and id=? and status='waiting'",
-      [account, account, signaturetoken,'%'+account+'%', documentid]
+      [account, account, signaturetoken, "%" + account + "%", documentid],
     );
     //return message to client
     const answer = '{"answer":"OK","message":"document rejected"}';
@@ -946,7 +971,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where account=? and id=? and (status='draft' or status='waiting')",
-      [account, documentid]
+      [account, documentid],
     );
     if (rows.length == 0) {
       const answer =
@@ -962,7 +987,7 @@ async function mainloop() {
       //await connection.execute("update documents set status='waiting',signaturetoken=? where account=? and id=? and status='draft'",[signaturetoken,account,documentid]);
       await connection.execute(
         "update documents set signaturetoken=? where account=? and id=?",
-        [signaturetoken, account, documentid]
+        [signaturetoken, account, documentid],
       );
     } else {
       signaturetoken = rows[0].signaturetoken;
@@ -1005,7 +1030,9 @@ async function mainloop() {
     }
     // make query to get templates
     const [rows, fields] = await connection.execute(
-      "select * from templates where private='N' or creator=? order by description",[account]);
+      "select * from templates where private='N' or creator=? order by description",
+      [account],
+    );
     // send the back the records in json format
     //console.log("templates:", JSON.stringify(rows));
     await connection.end();
@@ -1041,7 +1068,10 @@ async function mainloop() {
       return;
     }
     // make query to get templates
-    const [rows, fields] = await connection.execute("select tags from templates where private='N' or creator=?",[account]);
+    const [rows, fields] = await connection.execute(
+      "select tags from templates where private='N' or creator=?",
+      [account],
+    );
     // send the back the records in json format
     const tags = getUniqueTags(rows);
     await connection.end();
@@ -1066,7 +1096,7 @@ async function mainloop() {
     // check account
     if (typeof account === "undefined") {
       console.log(
-        "ERROR: Missing account in request updatedocumentdescription"
+        "ERROR: Missing account in request updatedocumentdescription",
       );
       const answer = '{"answer":"KO","message":"account is mandatory"}';
       res.send(answer);
@@ -1075,7 +1105,7 @@ async function mainloop() {
     // check documentid
     if (typeof documentid === "undefined") {
       console.log(
-        "ERROR: Missing documentid in request updatedocumentdescription"
+        "ERROR: Missing documentid in request updatedocumentdescription",
       );
       const answer = '{"answer":"KO","message":"documentid is mandatory"}';
       res.send(answer);
@@ -1084,7 +1114,7 @@ async function mainloop() {
     // check description
     if (typeof description === "undefined") {
       console.log(
-        "ERROR: Missing description in request updatedocumentdescription"
+        "ERROR: Missing description in request updatedocumentdescription",
       );
       const answer = '{"answer":"KO","message":"description is mandatory"}';
       res.send(answer);
@@ -1092,7 +1122,7 @@ async function mainloop() {
     }
     if (description.length == 0) {
       console.log(
-        "ERROR: Missing description in request updatedocumentdescription"
+        "ERROR: Missing description in request updatedocumentdescription",
       );
       const answer = '{"answer":"KO","message":"description is mandatory"}';
       res.send(answer);
@@ -1110,7 +1140,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "update documents set description=? where account=? and id=?",
-      [description, account, documentid]
+      [description, account, documentid],
     );
     const answer = '{"answer":"OK","message":"description has been updated"}';
     await connection.end();
@@ -1136,7 +1166,7 @@ async function mainloop() {
     // check account
     if (typeof account === "undefined") {
       console.log(
-        "ERROR: Missing account in request updatedocumentcounterpart"
+        "ERROR: Missing account in request updatedocumentcounterpart",
       );
       const answer = '{"answer":"KO","message":"account is mandatory"}';
       res.send(answer);
@@ -1145,7 +1175,7 @@ async function mainloop() {
     // check documentid
     if (typeof documentid === "undefined") {
       console.log(
-        "ERROR: Missing documentid in request updatedocumentcounterpart"
+        "ERROR: Missing documentid in request updatedocumentcounterpart",
       );
       const answer = '{"answer":"KO","message":"documentid is mandatory"}';
       res.send(answer);
@@ -1154,7 +1184,7 @@ async function mainloop() {
     // check documentaccount
     if (typeof documentaccount === "undefined") {
       console.log(
-        "ERROR: Missing documentaccount in request updatedocumentcounterpart"
+        "ERROR: Missing documentaccount in request updatedocumentcounterpart",
       );
       const answer = '{"answer":"KO","message":"documentaccount is mandatory"}';
       res.send(answer);
@@ -1162,7 +1192,7 @@ async function mainloop() {
     }
     if (documentaccount.length == 0) {
       console.log(
-        "ERROR: Missing documentaccount in request updatedocumentcounterpart"
+        "ERROR: Missing documentaccount in request updatedocumentcounterpart",
       );
       const answer = '{"answer":"KO","message":"documentaccount is mandatory"}';
       res.send(answer);
@@ -1178,32 +1208,34 @@ async function mainloop() {
       return;
     }
     // read the document data to establis where to write the counterpart
-    const [rows,fields]= await connection.execute("select * from documents where (account=? or signaturetoken=?) and id=?",[account,signaturetoken,documentid]);
-    if(rows.length==0){
+    const [rows, fields] = await connection.execute(
+      "select * from documents where (account=? or signaturetoken=?) and id=?",
+      [account, signaturetoken, documentid],
+    );
+    if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"document not found"}';
-      console.log("answwer",answer);
+      console.log("answwer", answer);
       res.send(answer);
       connection.end();
       return;
     }
     // write the counterpart in the main field
-    if(rows[0].counterpart==documentaccount || rows[0].counterpart==''){
+    if (rows[0].counterpart == documentaccount || rows[0].counterpart == "") {
       // update the counterpart field when coming from the creator of the document
       await connection.execute(
-      "update documents set counterpart=? where (account=?  or signaturetoken=?) and id=?",
-        [documentaccount, account, signaturetoken,documentid]
-      );    
+        "update documents set counterpart=? where (account=?  or signaturetoken=?) and id=?",
+        [documentaccount, account, signaturetoken, documentid],
+      );
     } else {
       // or write to the other counterparts field
-      if(!rows[0].othercounterparts.includes(documentaccount)){
-        let ocp='';
-        if(rows[0].othercounterparts.length>0)
-          ocp=ocp+',';
-        ocp=ocp+documentaccount;
+      if (!rows[0].othercounterparts.includes(documentaccount)) {
+        let ocp = "";
+        if (rows[0].othercounterparts.length > 0) ocp = ocp + ",";
+        ocp = ocp + documentaccount;
         await connection.execute(
-        "update documents set othercounterparts=? where (account=?  or signaturetoken=?) and id=?",
-          [ocp, account, signaturetoken,documentid]
-        ); 
+          "update documents set othercounterparts=? where (account=?  or signaturetoken=?) and id=?",
+          [ocp, account, signaturetoken, documentid],
+        );
       }
     }
     const answer = '{"answer":"OK","message":"counterpart has been updated"}';
@@ -1252,7 +1284,7 @@ async function mainloop() {
     // make query for draft documents (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and id=?",
-      [account, account,'%'+account+'%', documentid]
+      [account, account, "%" + account + "%", documentid],
     );
     if (rows.length == 0) {
       const answer =
@@ -1407,7 +1439,7 @@ async function mainloop() {
     // store on DB the standard signature
     await connection.execute(
       "update users set signaturefullname=?,signatureinitials=?,signaturefontname=? where account=? and token=?",
-      [fullname, initials, fontname, account, token]
+      [fullname, initials, fontname, account, token],
     );
     const answer =
       '{"answer":"OK","message":"Standard signature has been updated"}';
@@ -1448,7 +1480,7 @@ async function mainloop() {
     // get the standard signature (possible empty data if was not set)
     const [rows, fields] = await connection.execute(
       "select signaturefullname as fullname,signatureinitials as initials,signaturefontname as fontname from users where account=? and token=?",
-      [account, token]
+      [account, token],
     );
     if (rows.length == 0) {
       const answer = '{"answer":"KO","message":"user not found"}';
@@ -1504,7 +1536,7 @@ async function mainloop() {
     // make query (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from scannedsignatures where account=? and type=?",
-      [account, type]
+      [account, type],
     );
     if (rows.length == 0) {
       const answer =
@@ -1669,7 +1701,10 @@ async function mainloop() {
             <p style="font-family: standardfont; font-size:48px">${name}</p>
             </body
             </html>`;
-      const image = await nodeHtmlToImage({ html: html,puppeteerArgs:{ args: ['--no-sandbox','--disable-setuid-sandbox'] } });
+      const image = await nodeHtmlToImage({
+        html: html,
+        puppeteerArgs: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
+      });
       res.writeHead(200, { "Content-Type": "image/png" });
       res.end(image, "binary");
       console.log("Signature generated from font has been sent");
@@ -1710,7 +1745,7 @@ async function mainloop() {
     // make query for   (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from users where account=?",
-      [account]
+      [account],
     );
     if (rows.length == 0) {
       const answer =
@@ -1770,7 +1805,7 @@ async function mainloop() {
     // make query for   (sql injection is managed)
     const [rows, fields] = await connection.execute(
       "select * from users where account=?",
-      [account]
+      [account],
     );
     if (rows.length == 0) {
       const answer =
@@ -1782,7 +1817,7 @@ async function mainloop() {
     }
     await connection.execute(
       "update users set encryptionkey=? where account=?",
-      [privatekey, account]
+      [privatekey, account],
     );
     const answer = '{"answer":"OK","message":"Private key has been saved"}';
     console.log("Sending Answer:", answer);
@@ -1820,7 +1855,7 @@ async function uploadFiles(req, res) {
   let token = req.body.token;
   let template = req.body.template;
   let documentid = req.body.documentid;
-  let templateid= req.body.templateid;
+  let templateid = req.body.templateid;
   if (typeof account === "undefined") {
     res.send('{"answer":"KO","message":"account is mandatory" }');
   }
@@ -1847,53 +1882,53 @@ async function uploadFiles(req, res) {
     const hash = hashSum.digest("hex");
     if (template == "yes") {
       let content = fs.readFileSync("upload/" + req.files[i].filename);
-        // new template
-      if(templateid==0){
+      // new template
+      if (templateid == 0) {
         await connection.execute(
           "insert into templates set creator=?,description=?,content=?,dtlastupdate=now()",
-          [account, req.files[i].originalname, content]
-          );
-      }else {
-        console.log("update template",templateid);
+          [account, req.files[i].originalname, content],
+        );
+      } else {
+        console.log("update template", templateid);
         await connection.execute(
           "update templates set description=?,content=?,dtlastupdate=now() where id=? and creator=?",
-          [req.files[i].originalname, content,templateid,account]
-          );
+          [req.files[i].originalname, content, templateid, account],
+        );
       }
     } else {
       // new document
-      if(documentid==0){
+      if (documentid == 0) {
         //generate public view token
         let publicviewtoken = crypto.randomBytes(32).toString("hex");
         await connection.execute(
           "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?,othercounterparts=''",
           [
-          account,
-          req.files[i].originalname,
-          req.files[i].originalname,
-          req.files[i].filename,
-          req.files[i].size,
-          req.files[i].mimetype,
-          hash,
-          publicviewtoken,
-          ]
+            account,
+            req.files[i].originalname,
+            req.files[i].originalname,
+            req.files[i].filename,
+            req.files[i].size,
+            req.files[i].mimetype,
+            hash,
+            publicviewtoken,
+          ],
         );
-     } else {
-       //update document
-       await connection.execute("update documents set description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where id=? and account=?",
+      } else {
+        //update document
+        await connection.execute(
+          "update documents set description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where id=? and account=?",
           [
-          req.files[i].originalname,
-          req.files[i].originalname,
-          req.files[i].filename,
-          req.files[i].size,
-          req.files[i].mimetype,
-          hash,
-          documentid,
-          account
-          ]
+            req.files[i].originalname,
+            req.files[i].originalname,
+            req.files[i].filename,
+            req.files[i].size,
+            req.files[i].mimetype,
+            hash,
+            documentid,
+            account,
+          ],
         );
-     }
-     
+      }
     }
   }
   await connection.end();
@@ -1905,7 +1940,7 @@ async function uploadFiles(req, res) {
 async function check_token_validity(token, account, connection) {
   const [rows, fields] = await connection.execute(
     "select * from users where account=? and token=? and time_to_sec(timediff(now(),dttoken))<=3600",
-    [account, token]
+    [account, token],
   );
   if (rows.length == 0) {
     return false;
@@ -1913,7 +1948,7 @@ async function check_token_validity(token, account, connection) {
   //update the dttoken to keep the session open
   await connection.execute(
     "update users set dttoken=now() where account=? and token=?",
-    [account, token]
+    [account, token],
   );
   return true;
 }
@@ -1921,7 +1956,7 @@ async function check_token_validity(token, account, connection) {
 async function update_status_documents_drafts(account, connection) {
   const [rows, fields] = await connection.execute(
     "select * from documents where (account=? or counterpart=? or  othercounterparts like ?) and status='draft'",
-    [account, account,'%'+account+'%',]
+    [account, account, "%" + account + "%"],
   );
   console.log("********* update status drafts");
   console.log(rows);
@@ -1932,25 +1967,25 @@ async function update_status_documents_drafts(account, connection) {
     if (hashstring !== "0x") {
       await connection.execute(
         "update documents set status='waiting' where id=?",
-        [rows[i].id]
+        [rows[i].id],
       );
       console.log("Status changed to 'waiting' for document id:", rows[i].id);
     }
     console.log(rows[i].counterpart, rows[i].id);
     const hashc = await api.query.docSig.signatures(
       rows[i].counterpart,
-      rows[i].id
+      rows[i].id,
     );
     const hashstringc = `${hashc}`;
     console.log("hashstringc", hashstringc);
     if (hashstringc !== "0x") {
       await connection.execute(
         "update documents set status='waiting' where id=?",
-        [rows[i].id]
+        [rows[i].id],
       );
       console.log(
         "Status changed to 'waiting' for document id (counterpart):",
-        rows[i].id
+        rows[i].id,
       );
     }
   }
@@ -1961,7 +1996,7 @@ async function update_status_documents_waiting(account, connection) {
   console.log("Checking for approved change");
   const [rows, fields] = await connection.execute(
     "select * from documents where (account=? or counterpart=? or othercounterparts like ?) and status='waiting'",
-    [account, account,'%'+account+'%']
+    [account, account, "%" + account + "%"],
   );
   console.log("record found: ", rows.length);
   for (let i = 0; i < rows.length; i++) {
@@ -1973,27 +2008,26 @@ async function update_status_documents_waiting(account, connection) {
     if (hashstringa !== "0x") {
       hash = await api.query.docSig.signatures(rows[i].counterpart, rows[i].id);
       let hashstringb = `${hash}`;
-      let hashstringc=`${hash}`;
+      let hashstringc = `${hash}`;
       if (hashstringb !== "0x") {
         //check for other counterparts
-        if(rows[i].othercounterparts.length>0){
-            let ocps=rows[i].othercounterparts.split(",");
-            for (ocp of ocps){
-              hash = await api.query.docSig.signatures(ocp, rows[i].id);
-              hashstringc=`${hash}`;
-              if(hashstringc=='0x')
-                break;
-            }        
+        if (rows[i].othercounterparts.length > 0) {
+          let ocps = rows[i].othercounterparts.split(",");
+          for (ocp of ocps) {
+            hash = await api.query.docSig.signatures(ocp, rows[i].id);
+            hashstringc = `${hash}`;
+            if (hashstringc == "0x") break;
+          }
         }
         //change status in case of all parts have signed the document
-        if(hashstringc!='0x') {
+        if (hashstringc != "0x") {
           await connection.execute(
             "update documents set status='approved' where id=?",
-            [rows[i].id]
+            [rows[i].id],
           );
           console.log(
             "Status changed to 'completed' for document id:",
-            rows[i].id
+            rows[i].id,
           );
         }
       }
@@ -2090,7 +2124,7 @@ async function uploadsignature(req, res) {
   //search for previous scanned signature
   const [rows, fields] = await connection.execute(
     "select * from scannedsignatures where account=? and type='S'",
-    [account]
+    [account],
   );
   // insert new record
   if (rows.length == 0) {
@@ -2103,7 +2137,7 @@ async function uploadsignature(req, res) {
         req.files[i].size,
         req.files[i].mimetype,
         hash,
-      ]
+      ],
     );
   } else {
     //update an existing record
@@ -2116,7 +2150,7 @@ async function uploadsignature(req, res) {
         req.files[i].mimetype,
         hash,
         account,
-      ]
+      ],
     );
   }
   await connection.end();
@@ -2163,7 +2197,7 @@ async function uploadinitials(req, res) {
   //search for previous scanned signature
   const [rows, fields] = await connection.execute(
     "select * from scannedsignatures where account=? and type='I'",
-    [account]
+    [account],
   );
   // insert new record
   if (rows.length == 0) {
@@ -2176,7 +2210,7 @@ async function uploadinitials(req, res) {
         req.files[i].size,
         req.files[i].mimetype,
         hash,
-      ]
+      ],
     );
   } else {
     //update an existing record
@@ -2189,7 +2223,7 @@ async function uploadinitials(req, res) {
         req.files[i].mimetype,
         hash,
         account,
-      ]
+      ],
     );
   }
   await connection.end();
@@ -2208,6 +2242,6 @@ async function opendb() {
   return connection;
 }
 // custom parser for signature rendering in dcs files
-  function signatureParser(block){
-    return `<img src="${block.data.url}" alt="${block.data.caption}">`;
-  }
+function signatureParser(block) {
+  return `<img src="${block.data.url}" alt="${block.data.caption}">`;
+}

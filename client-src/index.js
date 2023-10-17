@@ -72,7 +72,7 @@ let documentsJSON = [];
 let templatesJSON = [];
 let currentDocumentId = 0;
 let currentDocumentData;
-let currentTemplateId=0;
+let currentTemplateId = 0;
 let actionsModal = new bootstrap.Modal("#documentActions", { focus: true });
 let signDocumentModal = new bootstrap.Modal("#signDocument", { focus: true });
 let linkshareModal = new bootstrap.Modal("#linkShare", { focus: true });
@@ -90,7 +90,7 @@ let signaturetoken = "";
 const sessionToken = window.sessionStorage.getItem("currentToken");
 const sessionAccount = window.sessionStorage.getItem("currentAccount");
 let publicsignaturetoken = window.sessionStorage.getItem(
-  "publicsignaturetoken"
+  "publicsignaturetoken",
 );
 if (sessionToken != null) currentToken = sessionToken;
 if (sessionAccount != null) {
@@ -101,10 +101,10 @@ if (sessionAccount != null) {
 await enableWeb3();
 // enable tooltip
 const tooltipTriggerList = document.querySelectorAll(
-  '[data-bs-toggle="tooltip"]'
+  '[data-bs-toggle="tooltip"]',
 );
 const tooltipList = [...tooltipTriggerList].map(
-  (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
+  (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl),
 );
 
 // Here we set the actions of the different menu/buttons/links
@@ -113,7 +113,7 @@ if (
   document.getElementById("connect") != null
 ) {
   const connectwallet = document.getElementById("connect");
-  connectwallet.addEventListener("click", connectWallet.bind(null,""));
+  connectwallet.addEventListener("click", connectWallet.bind(null, ""));
 }
 // logout, remove all the session data
 document.getElementById("logout").onclick = () => {
@@ -144,7 +144,7 @@ document.getElementById("docview").onclick = async () => {
     const blob = await api.query.docSig.blobs(
       currentAccount.address,
       currentDocumentId,
-      1
+      1,
     );
     if (blob.length > 0) {
       let docUrl = await download_blob(blob);
@@ -170,7 +170,7 @@ document.getElementById("docpdf").onclick = async () => {
     const blob = await api.query.docSig.blobs(
       currentAccount.address,
       currentDocumentId,
-      1
+      1,
     );
     if (blob.length > 0) {
       let docUrl = await download_blob(blob);
@@ -182,7 +182,7 @@ document.getElementById("docpdf").onclick = async () => {
         account: currentAccount.address,
         token: currentToken,
         documentid: currentDocumentId,
-        pdf: 'true'
+        pdf: "true",
       };
 
       let url =
@@ -200,7 +200,7 @@ document.getElementById("docdownload").onclick = async () => {
     const blob = await api.query.docSig.blobs(
       currentAccount.address,
       currentDocumentId,
-      1
+      1,
     );
     if (blob.length > 0) {
       let docUrl = await download_blob(blob);
@@ -340,30 +340,28 @@ document.getElementById("docsign").onclick = async () => {
         docdata.counterpart +
         '" required >';
       */
-      cp='<textarea class="form-control" id="counterpart" rows="4">';
-      cp=cp+docdata.counterpart;
-      if(docdata.othercounterparts!=null){
-        let cps=docdata.othercounterparts.split(",");
-        for(let i=0;i<cps.length;i++)
-          cp=cp+"\n"+cps[i];
+      cp = '<textarea class="form-control" id="counterpart" rows="4">';
+      cp = cp + docdata.counterpart;
+      if (docdata.othercounterparts != null) {
+        let cps = docdata.othercounterparts.split(",");
+        for (let i = 0; i < cps.length; i++) cp = cp + "\n" + cps[i];
       }
-      cp=cp+'</textarea>';
+      cp = cp + "</textarea>";
     } else {
       /*cp =
         '<input class="form-control" type="text" placeholder="Address" aria-label="default input fullname" id="counterpart" value="' +
         docdata.account +
         '" disabled >';*/
-      cp='<textarea class="form-control" id="counterpart" rows="4" disabled>';
-      cp=cp+docdata.account;
-      if( docdata.counterpart!=currentAccount.address)
-        cp=cp+"\n"+docdata.counterpart;
-      if(docdata.othercounterparts!=null){
-        let cps=docdata.othercounterparts.split(",");
-        for(let i=0;i<cps.length;i++)
-          if(cps[i]!=currentAccount.address)
-            cp=cp+"\n"+cps[i];
+      cp = '<textarea class="form-control" id="counterpart" rows="4" disabled>';
+      cp = cp + docdata.account;
+      if (docdata.counterpart != currentAccount.address)
+        cp = cp + "\n" + docdata.counterpart;
+      if (docdata.othercounterparts != null) {
+        let cps = docdata.othercounterparts.split(",");
+        for (let i = 0; i < cps.length; i++)
+          if (cps[i] != currentAccount.address) cp = cp + "\n" + cps[i];
       }
-      cp=cp+'</textarea>';
+      cp = cp + "</textarea>";
     }
     document.getElementById("docsigncounterpart").innerHTML = cp;
     document.getElementById("docsignmsg").innerHTML = "";
@@ -446,21 +444,21 @@ document.getElementById("doclink").onclick = async () => {
     //prompt(text, url);
     actionsModal.hide();
     //set the input field value
-    let uls=document.getElementById("urllinkshare");
-    uls.value=url; 
+    let uls = document.getElementById("urllinkshare");
+    uls.value = url;
     uls.focus();
     uls.select();
     uls.setSelectionRange(0, 99999); // For mobile devices
     navigator.clipboard.writeText(uls.value);
     let turl;
-    turl="element://vector/webapp/";
-    document.getElementById("elementlinkshare").href=turl;
-    turl="mailto:?body="+url;
-    document.getElementById("emaillinkshare").href=turl;
-    turl="https://api.whatsapp.com/send?text="+url;    
-    document.getElementById("whatsapplinkshare").href=turl;
-    turl="https://telegram.me/share/url?url="+url;
-    document.getElementById("telegramlinkshare").href=turl;
+    turl = "element://vector/webapp/";
+    document.getElementById("elementlinkshare").href = turl;
+    turl = "mailto:?body=" + url;
+    document.getElementById("emaillinkshare").href = turl;
+    turl = "https://api.whatsapp.com/send?text=" + url;
+    document.getElementById("whatsapplinkshare").href = turl;
+    turl = "https://telegram.me/share/url?url=" + url;
+    document.getElementById("telegramlinkshare").href = turl;
     linkshareModal.show();
   }
 };
@@ -504,7 +502,7 @@ document.getElementById("docsignview").onclick = async () => {
     const blob = await api.query.docSig.blobs(
       currentAccount.address,
       currentDocumentId,
-      1
+      1,
     );
     if (blob.length > 0) {
       let docUrl = await download_blob(blob);
@@ -567,7 +565,7 @@ document.getElementById("docsignsign").onclick = async () => {
       //check for document already signed
       const hash = await api.query.docSig.documents(
         docdata.account,
-        currentDocumentId
+        currentDocumentId,
       );
       const hashstring = `${hash}`;
       if (hashstring !== "0x") {
@@ -581,7 +579,7 @@ document.getElementById("docsignsign").onclick = async () => {
       //check for document already signed from the same account
       const hash = await api.query.docSig.signatures(
         currentAccount.address,
-        currentDocumentId
+        currentDocumentId,
       );
       const hashstring = `${hash}`;
       if (hashstring !== "0x") {
@@ -597,58 +595,62 @@ document.getElementById("docsignsign").onclick = async () => {
       }
     }
     // load the counterparts in an array
-    let cpb=document.getElementById("counterpart").value;
-    let counterparts=cpb.split("\n");
-    let counterpart='';
+    let cpb = document.getElementById("counterpart").value;
+    let counterparts = cpb.split("\n");
+    let counterpart = "";
     let counterpartdb = "";
-    let publickeyCounterparts=[];
-    for(counterpart of counterparts) {
-        //check for counterpart addresses
-        if (docdata.account == currentAccount.address) {
-          counterpartdb = counterpart;
-        } else {
-          counterpart = docdata.account;
-          counterpartdb = currentAccount.address;
-        }
-        // verify the validity of the counterpart address
-        if (!isValidAddress(counterpart)) {
-          msg = '<div class="alert alert-danger" role="alert"><center>';
-          msg = msg + "Counterpart address is not valid: "+counterpart;
-          msg = msg + "</center></div>";
-          document.getElementById("docsignmsg").innerHTML = msg;
-          console.log(msg);
-          return;
-        }
-        // verify the counterpart is different from the current address
-        if (counterpart == currentAccount.address) {
-          msg = '<div class="alert alert-danger" role="alert"><center>';
-          msg =
-            msg + "Counterpart address must be different from the document creator";
-          msg = msg + "</center></div>";
-          document.getElementById("docsignmsg").innerHTML = msg;
-          console.log(msg);
-          return;
-        }
-        // verify the counterpart has published the public key for encryption
-        // the public key is published when the account configure the encryption password and sign the transaction for such purpose.
-        let publickeyCounterpartb = (
-          await api.query.docSig.encryptionPublicKeys(counterpart)
-        ).toHuman();
-        if (publickeyCounterpartb.length == 0) {
-          msg = '<div class="alert alert-danger" role="alert"><center>';
-          msg =
-            msg +
-            "Counterpart: "+counterpart+" has not yet published the public key, he/she should configure the encryption. ";
-          msg =
-            msg+"Please ask the counterpart to connect, click on \"Settings\" icon, click on \"Encryption\" tab, set a password,";
-          msg= msg + "click \"Save\" button and sign the transaction required";
-          msg = msg + "</center></div>";
-          document.getElementById("docsignmsg").innerHTML = msg;
-          console.log(msg);
-          return;
-        }
-        // add the public key to the counter parts array 
-        publickeyCounterparts.push(hexToU8a(publickeyCounterpartb));
+    let publickeyCounterparts = [];
+    for (counterpart of counterparts) {
+      //check for counterpart addresses
+      if (docdata.account == currentAccount.address) {
+        counterpartdb = counterpart;
+      } else {
+        counterpart = docdata.account;
+        counterpartdb = currentAccount.address;
+      }
+      // verify the validity of the counterpart address
+      if (!isValidAddress(counterpart)) {
+        msg = '<div class="alert alert-danger" role="alert"><center>';
+        msg = msg + "Counterpart address is not valid: " + counterpart;
+        msg = msg + "</center></div>";
+        document.getElementById("docsignmsg").innerHTML = msg;
+        console.log(msg);
+        return;
+      }
+      // verify the counterpart is different from the current address
+      if (counterpart == currentAccount.address) {
+        msg = '<div class="alert alert-danger" role="alert"><center>';
+        msg =
+          msg +
+          "Counterpart address must be different from the document creator";
+        msg = msg + "</center></div>";
+        document.getElementById("docsignmsg").innerHTML = msg;
+        console.log(msg);
+        return;
+      }
+      // verify the counterpart has published the public key for encryption
+      // the public key is published when the account configure the encryption password and sign the transaction for such purpose.
+      let publickeyCounterpartb = (
+        await api.query.docSig.encryptionPublicKeys(counterpart)
+      ).toHuman();
+      if (publickeyCounterpartb.length == 0) {
+        msg = '<div class="alert alert-danger" role="alert"><center>';
+        msg =
+          msg +
+          "Counterpart: " +
+          counterpart +
+          " has not yet published the public key, he/she should configure the encryption. ";
+        msg =
+          msg +
+          'Please ask the counterpart to connect, click on "Settings" icon, click on "Encryption" tab, set a password,';
+        msg = msg + 'click "Save" button and sign the transaction required';
+        msg = msg + "</center></div>";
+        document.getElementById("docsignmsg").innerHTML = msg;
+        console.log(msg);
+        return;
+      }
+      // add the public key to the counter parts array
+      publickeyCounterparts.push(hexToU8a(publickeyCounterpartb));
     }
 
     // get encryption private key (which is encrypted against a password)
@@ -693,7 +695,7 @@ document.getElementById("docsignsign").onclick = async () => {
     // decrypt secret phrase using the supplied password
     let mnemonicPhrase = await decrypt_symmetric_stream(
       encryptedprivatekey,
-      password
+      password,
     );
     //convert array buffer to string
     mnemonicPhrase = arrayBufferToString(mnemonicPhrase);
@@ -710,36 +712,36 @@ document.getElementById("docsignsign").onclick = async () => {
     encryptionpwd = password;
     //
     //update counterparts on the document table
-    for(counterpart of counterparts) {
+    for (counterpart of counterparts) {
       if (docdata.account == currentAccount.address) {
         counterpartdb = counterpart;
       } else {
         counterpart = docdata.account;
         counterpartdb = currentAccount.address;
       }
-        //update counterparts on the document table
-        params = {
-          account: currentAccount.address,
-          token: currentToken,
-          signaturetoken: signaturetoken,
-          documentaccount: counterpartdb,
-          documentid: currentDocumentId,
-        };
-        url =
-          window.location.protocol +
-          "//" +
-          window.location.host +
-          "/updatedocumentcounterpart";
-        console.log("url", url);
-        const response = await fetch(url + `?${qs.stringify(params)}`, {
-          method: "GET",
-        });
-        let answerJSON = await response.json();
-        console.log("answerJSON", answerJSON);
-        if (answerJSON.answer == "KO") {
-          await show_error(answerJSON.message);
-          return;
-        }
+      //update counterparts on the document table
+      params = {
+        account: currentAccount.address,
+        token: currentToken,
+        signaturetoken: signaturetoken,
+        documentaccount: counterpartdb,
+        documentid: currentDocumentId,
+      };
+      url =
+        window.location.protocol +
+        "//" +
+        window.location.host +
+        "/updatedocumentcounterpart";
+      console.log("url", url);
+      const response = await fetch(url + `?${qs.stringify(params)}`, {
+        method: "GET",
+      });
+      let answerJSON = await response.json();
+      console.log("answerJSON", answerJSON);
+      if (answerJSON.answer == "KO") {
+        await show_error(answerJSON.message);
+        return;
+      }
     }
     //************************************************/
     //sign the document
@@ -780,17 +782,19 @@ document.getElementById("docsignsign").onclick = async () => {
         const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
         const keyspair = sodium.crypto_box_seed_keypair(seedkeys);
         //encrypt the document for each counter part
-        let txs = [api.tx.docSig.newDocument(currentDocumentId, "0x" + docdata.hash)];
+        let txs = [
+          api.tx.docSig.newDocument(currentDocumentId, "0x" + docdata.hash),
+        ];
         // encrypt the binary data with the counterparts public keys including the signer
         publickeyCounterparts.push(keyspair.publicKey);
-        console.log("publickeyCounterparts",publickeyCounterparts);
+        console.log("publickeyCounterparts", publickeyCounterparts);
         const encryptedab = await encrypt_asymmetric_stream(
           ab,
           keyspair.privateKey,
           keyspair.publicKey,
-          publickeyCounterparts
+          publickeyCounterparts,
         );
-        const blobb64=arrayBufferToBase64(encryptedab);
+        const blobb64 = arrayBufferToBase64(encryptedab);
         // use utility pallet to store the document and sign the hash in one call
         txs.push(api.tx.docSig.newBlob(currentDocumentId, 1, blobb64));
         //object to sign
@@ -799,13 +803,13 @@ document.getElementById("docsignsign").onclick = async () => {
         // proceed with the signature with the straight call to sign the hash
         signdocument = api.tx.docSig.newDocument(
           currentDocumentId,
-          "0x" + docdata.hash
+          "0x" + docdata.hash,
         );
       }
     } else {
       signdocument = api.tx.docSig.signDocument(
         currentDocumentId,
-        "0x" + docdata.hash
+        "0x" + docdata.hash,
       );
     }
     //sign document
@@ -842,7 +846,7 @@ document.getElementById("docsignsign").onclick = async () => {
               render_main("drafts");
             }
           }
-        }
+        },
       )
       .catch((error) => {
         msg = '<div class="alert alert-danger" role="alert"><center>';
@@ -891,7 +895,7 @@ async function writeDocumentDescription() {
 }
 // function to view a document in the browser
 //function called to connect the wallet
-async function connectWallet(accountid,event) {
+async function connectWallet(accountid, event) {
   //console.log("accountid",accountid);
   //fetch the injected wallet and enable Web3
   let allInjected = await web3Enable("docusign.aisland.io");
@@ -913,7 +917,7 @@ async function connectWallet(accountid,event) {
   // returns an array of { address, meta: { name, source } }
   // meta.source contains the name of the extension that provides this account
   const allAccounts = await web3Accounts();
-  console.log("allAccounts",allAccounts);
+  console.log("allAccounts", allAccounts);
   if (allAccounts.length == 0) {
     //invite the user to create an account
     let msg = '<div class="alert alert-warning" role="alert"><center>';
@@ -925,44 +929,53 @@ async function connectWallet(accountid,event) {
     return;
   }
   // in case of multiple accounts we generate a list of buttons with all the available accounts
-  if (allAccounts.length > 1 &&  accountid.length==0) {
-    let c='<p class="text-primary">Select account to work with:</p>';
+  if (allAccounts.length > 1 && accountid.length == 0) {
+    let c = '<p class="text-primary">Select account to work with:</p>';
     let i;
-    for (i=0;i<allAccounts.length;i++){
+    for (i = 0; i < allAccounts.length; i++) {
       let shortaccount =
-      allAccounts[i].meta.name +
-      " [" +
-      allAccounts[i].address.substring(0, 6) +
-      "..." +
-      allAccounts[i].address.substring(42) +
-      "]";
-      c=c+'<button type="button" class="btn btn-primary" id="wallet'+i+'">'+shortaccount+'</button>';
+        allAccounts[i].meta.name +
+        " [" +
+        allAccounts[i].address.substring(0, 6) +
+        "..." +
+        allAccounts[i].address.substring(42) +
+        "]";
+      c =
+        c +
+        '<button type="button" class="btn btn-primary" id="wallet' +
+        i +
+        '">' +
+        shortaccount +
+        "</button>";
     }
     document.getElementById("connectcol").innerHTML = c;
     //console.log(c);
     // add listeners for each account found
-    for (i=0;i<allAccounts.length;i++){
-        const buttonwlt = document.getElementById("wallet"+i);
-        buttonwlt.addEventListener("click", connectWallet.bind(null,i.toString()));
+    for (i = 0; i < allAccounts.length; i++) {
+      const buttonwlt = document.getElementById("wallet" + i);
+      buttonwlt.addEventListener(
+        "click",
+        connectWallet.bind(null, i.toString()),
+      );
     }
     return;
   }
-  
+
   //remove messages if any
   document.getElementById("msg").innerHTML = "";
   // inform how to change account
   if (allAccounts.length > 1) {
-    currentAccount=allAccounts[Number(accountid)];
-  }else{
-    currentAccount=allAccounts[0];
+    currentAccount = allAccounts[Number(accountid)];
+  } else {
+    currentAccount = allAccounts[0];
   }
   // set current account with clicked account
   // sign-in execution opening the wallet
   // generate a random security token
-  // To guarantee enough performance, implementations are not using a truly 
-  // random number generator, but they are using a pseudo-random number 
-  // generator seeded with a value with enough entropy. The pseudo-random number 
-  // generator algorithm (PRNG) may vary across user agents, but is suitable for 
+  // To guarantee enough performance, implementations are not using a truly
+  // random number generator, but they are using a pseudo-random number
+  // generator seeded with a value with enough entropy. The pseudo-random number
+  // generator algorithm (PRNG) may vary across user agents, but is suitable for
   // cryptographic purposes. https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
   let token = bytestohex(window.crypto.getRandomValues(new Uint8Array(32)));
   // finds an injector for an address
@@ -1002,7 +1015,7 @@ async function connectWallet(accountid,event) {
     window.sessionStorage.setItem("currentToken", currentToken);
     window.sessionStorage.setItem(
       "currentAccount",
-      JSON.stringify(currentAccount)
+      JSON.stringify(currentAccount),
     );
     window.sessionStorage.setItem("publicsignaturetoken", publicsignaturetoken);
     render_main("drafts");
@@ -1141,15 +1154,15 @@ async function render_main(section) {
   c = c + "</table>";
   c = c + "</div></div>";
   // show cards option if empty
-  if (documentsJSON.length <=10) {
-    if (documentsJSON.length ==0) {
+  if (documentsJSON.length <= 10) {
+    if (documentsJSON.length == 0) {
       c =
         c +
         '<div class="row  justify-content-center align-items-center" style="text-align: center">';
-        c = c + '<div class="col-12"><h4>*** No documents found ***</h4><hr>';
-        c = c + "</div></div>";
+      c = c + '<div class="col-12"><h4>*** No documents found ***</h4><hr>';
+      c = c + "</div></div>";
     }
-    
+
     c =
       c +
       '<div class="row  justify-content-center align-items-center" style="text-align: center">';
@@ -1418,8 +1431,8 @@ function render_file_upload() {
 }
 //function to render a document UI
 function render_editor_document(docdata) {
-  currentDocumentData=docdata;
-  console.log("currentDocumentData edit",currentDocumentData);
+  currentDocumentData = docdata;
+  console.log("currentDocumentData edit", currentDocumentData);
   let c = '<div class="row">';
   c =
     c +
@@ -1547,28 +1560,25 @@ async function documentsave(evt) {
   let data = await editor.save();
   // in case of empyt doc leave without saving
   if (typeof data.blocks[0] === "undefined") {
-    if(templatedoc)
-      render_templates();
-    else
-      render_main("drafts");
+    if (templatedoc) render_templates();
+    else render_main("drafts");
     return;
   }
   //load desc from document data
-  let descdoc='Draft';
-  if(templatedoc)
-    descdoc='Template 1';
+  let descdoc = "Draft";
+  if (templatedoc) descdoc = "Template 1";
   if (currentDocumentId > 0 && !templatedoc) {
     let docdata = get_document_data(currentDocumentId);
-    if(typeof docdata!== 'undefined'){
-      if(typeof docdata.description !== 'undefined')
-        descdoc=docdata.description;
+    if (typeof docdata !== "undefined") {
+      if (typeof docdata.description !== "undefined")
+        descdoc = docdata.description;
     }
   }
   if (currentTemplateId > 0 && templatedoc) {
     let docdata = get_template_data(currentTemplateId);
-    if(typeof docdata!== 'undefined'){
-      if(typeof docdata.description !== 'undefined')
-        descdoc=docdata.description;
+    if (typeof docdata !== "undefined") {
+      if (typeof docdata.description !== "undefined")
+        descdoc = docdata.description;
     }
   }
   // require a description for the file
@@ -1576,19 +1586,18 @@ async function documentsave(evt) {
   if (templatedoc) {
     filename = prompt(
       "Please insert a description for this template:",
-      descdoc
+      descdoc,
     );
   } else {
     filename = prompt(
       "Please insert a description for this document:",
-      descdoc
+      descdoc,
     );
   }
   if (filename == null) {
     return;
   }
-  if(! filename.includes(".dcs"))
-    filename = filename + ".dcs";
+  if (!filename.includes(".dcs")) filename = filename + ".dcs";
   data = JSON.stringify(data);
   let url = window.location.protocol + "//" + window.location.host + "/upload";
   let formData = new FormData();
@@ -1600,7 +1609,7 @@ async function documentsave(evt) {
   formData.append("token", currentToken);
   formData.append("documentid", currentDocumentId);
   formData.append("templateid", currentTemplateId);
-  console.log("currentDocumentId",currentDocumentId);
+  console.log("currentDocumentId", currentDocumentId);
   if (templatedoc) {
     formData.append("template", "yes");
   }
@@ -1623,8 +1632,8 @@ async function documentsave(evt) {
       msg = msg + "Documents have been uploaded successfully";
       msg = msg + "</center></div>";
       document.getElementById("msg").innerHTML = msg;
-      if(templatedoc){
-        templatedoc=false;
+      if (templatedoc) {
+        templatedoc = false;
         render_templates();
       } else {
         render_main("drafts");
@@ -1646,12 +1655,10 @@ async function documentcancel(evt) {
   if (typeof data.blocks[0] !== "undefined") {
     const answer = confirm("Do you want to leave without saving?");
     if (answer == true) {
-      if(templatedoc){
+      if (templatedoc) {
         templatedoc = false;
         render_templates();
-      }
-      else 
-        render_main("drafts");
+      } else render_main("drafts");
       return;
     }
   } else {
@@ -1705,7 +1712,7 @@ async function render_templates(tagfilterv) {
   response = await fetch(url + `?${qs.stringify(params)}`, { method: "GET" });
   let templates = await response.json();
   // set global var for later reuse
-  templatesJSON=templates;
+  templatesJSON = templates;
   // templates' listbox
   c = c + '<div class="row"><div class="col-1"> </div>';
   c = c + '<div class="col-10" id="templatelist">';
@@ -1745,12 +1752,10 @@ async function render_templates(tagfilterv) {
   c =
     c +
     ' <button class="btn btn-secondary" id="templatecancel">Cancel</button>';
+  c = c + ' <button class="btn btn-primary" id="templateadd">Add</button>';
   c =
     c +
-    ' <button class="btn btn-primary" id="templateadd">Add</button>';
-  c =
-    c +
-    ' <button class="btn btn-primary" id="templateedit">Edit</button></center><br>';  
+    ' <button class="btn btn-primary" id="templateedit">Edit</button></center><br>';
   c = c + "</div>";
   c = c + "</div>";
 
@@ -1798,13 +1803,13 @@ async function templateClone() {
   });
   let data = await response.json();
   render_editor_document(data);
-  currentTemplateId=0;
+  currentTemplateId = 0;
   return;
 }
 //function to add a new template
 function templateAdd() {
   templatedoc = true;
-  currentTemplateId=0;
+  currentTemplateId = 0;
   render_editor_document();
 }
 //function to edit a  template
@@ -1825,7 +1830,7 @@ async function templateEdit() {
   let data = await response.json();
   templatedoc = true;
   render_editor_document(data);
-  currentTemplateId=id;
+  currentTemplateId = id;
 }
 // function to return to drafts from template cancellation
 function templateCancel() {
@@ -2094,11 +2099,13 @@ async function render_encryption() {
   const response = await fetch(url, { method: "GET" });
   let aj = await response.json();
   // check for public key
-  if(aj.encryptionkey!=""){
-    const publickey = await api.query.docSig.encryptionPublicKeys(currentAccount.address);
-    if(publickey.length==0){
+  if (aj.encryptionkey != "") {
+    const publickey = await api.query.docSig.encryptionPublicKeys(
+      currentAccount.address,
+    );
+    if (publickey.length == 0) {
       console.log("Missing public key, restarting the process for encryption");
-      aj.encryptionkey="";
+      aj.encryptionkey = "";
     }
   }
   if (aj.answer == "KO" || aj.encryptionkey == "") {
@@ -2271,7 +2278,7 @@ async function save_encryption() {
   // encrypt the mnemonic phrase with the password
   const encdata = await encrypt_symmetric_stream(
     mnemonicPhrase,
-    password.value
+    password.value,
   );
   const encdatab64 = uint8ArrayToBase64(encdata);
   // call the server to execute the storage
@@ -2302,7 +2309,7 @@ async function save_encryption() {
     api.rpc.system.version(),
   ]);
   const publickey = await api.query.docSig.encryptionPublicKeys(
-    currentAccount.address
+    currentAccount.address,
   );
   let msg = "";
   if (keyspair.publicKey != publickey) {
@@ -2333,7 +2340,7 @@ async function save_encryption() {
               return;
             }
           }
-        }
+        },
       )
       .catch((error) => {
         msg = '<div class="alert alert-danger" role="alert"><center>';
@@ -2362,7 +2369,7 @@ async function change_password_encryption() {
   }
   const mnemonicPhrase = await decrypt_symmetric_stream(
     encryptedprivatekey,
-    oldpassword
+    oldpassword,
   );
   if (mnemonicPhrase == false) {
     let msg = '<div class="alert alert-danger" role="alert"><center>';
@@ -2392,7 +2399,7 @@ async function change_password_encryption() {
   // encrypt the mnemonic phrase with the password
   const encdata = await encrypt_symmetric_stream(
     mnemonicPhrase,
-    password.value
+    password.value,
   );
   const encdatab64 = uint8ArrayToBase64(encdata);
   // call the server to execute the storage
@@ -2439,10 +2446,10 @@ async function strengthPassword() {
     strengthPassword.style.display = "none";
   }
   let strongPassword = new RegExp(
-    "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})"
+    "(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{8,})",
   );
   let mediumPassword = new RegExp(
-    "((?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{6,}))|((?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}))"
+    "((?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9])(?=.{6,}))|((?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?=.{8,}))",
   );
   if (strongPassword.test(password.value)) {
     strengthPassword.style.backgroundColor = "green";
@@ -2799,7 +2806,7 @@ async function encrypt_asymmetric_stream(
   msg,
   senderprivatekey,
   senderpublickey,
-  recipientpublickeys
+  recipientpublickeys,
 ) {
   await _sodium.ready;
   const sodium = _sodium;
@@ -2817,7 +2824,7 @@ async function encrypt_asymmetric_stream(
       secretkey,
       nonce,
       recipientpublickeys[i],
-      senderprivatekey
+      senderprivatekey,
     );
     //add to the array
     encsecretkeys.push(encsecretkey);
@@ -2827,14 +2834,14 @@ async function encrypt_asymmetric_stream(
   const secretkeychacha = secretkey.slice(0, 32);
   // generate a nonce for chacha20 (24 bytes)
   const noncechacha = sodium.randombytes_buf(
-    sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
+    sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
   );
   const encmsgchacha = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
     msg,
     null,
     null,
     noncechacha,
-    secretkeychacha
+    secretkeychacha,
   );
   // encrypt by AES-256 gcm
   //generate nonce for aes
@@ -2849,13 +2856,13 @@ async function encrypt_asymmetric_stream(
     secretkeyaes,
     alg,
     false,
-    ["encrypt"]
+    ["encrypt"],
   );
   // encrypt the output of chacha
   const encmsgaesb = await window.crypto.subtle.encrypt(
     alg,
     tmpkeyaes,
-    encmsgchacha
+    encmsgchacha,
   );
   const encmsgaes = new Uint8Array(encmsgaesb);
   let result = {
@@ -2901,7 +2908,7 @@ async function decrypt_asymmetric_stream(encmsgb, privatekey, publickey) {
       encsecret25519,
       nonce25519,
       encmsg.senderpublickey,
-      privatekey
+      privatekey,
     );
   } catch (e) {
     //console.log(e);
@@ -2917,13 +2924,13 @@ async function decrypt_asymmetric_stream(encmsgb, privatekey, publickey) {
     secretkeyaes,
     alg,
     false,
-    ["decrypt"]
+    ["decrypt"],
   );
   //decryption  by AESGCM
   const encmsgchachab = await window.crypto.subtle.decrypt(
     alg,
     tmpkeyaes,
-    encmsg.encmsg
+    encmsg.encmsg,
   );
   const encmsgchacha = new Uint8Array(encmsgchachab);
   // decryption second layer by Chacha20
@@ -2932,7 +2939,7 @@ async function decrypt_asymmetric_stream(encmsgb, privatekey, publickey) {
     encmsgchacha,
     null,
     encmsg.noncechacha,
-    secretkeychacha
+    secretkeychacha,
   );
   return result;
 }
@@ -2953,7 +2960,7 @@ async function encrypt_symmetric_stream(msg, password) {
   // generate random nonce for AES AND CHACHA
   const nonceaes = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const noncechacha = sodium.randombytes_buf(
-    sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
+    sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
   );
   // get derive secret key and random salt
   const secretkeychacha = key1[0];
@@ -2966,7 +2973,7 @@ async function encrypt_symmetric_stream(msg, password) {
     null,
     null,
     noncechacha,
-    secretkeychacha
+    secretkeychacha,
   );
   // encrypt by AES-256 gcm
   // set the algorithm
@@ -2977,13 +2984,13 @@ async function encrypt_symmetric_stream(msg, password) {
     secretkeyaes,
     alg,
     false,
-    ["encrypt"]
+    ["encrypt"],
   );
   // encrypt the output of chacha
   const encmsgaesb = await window.crypto.subtle.encrypt(
     alg,
     tmpkeyaes,
-    encmsgchacha
+    encmsgchacha,
   );
   const encmsgaes = new Uint8Array(encmsgaesb);
   let result = {
@@ -3020,7 +3027,7 @@ async function decrypt_symmetric_stream(encmsgb, password) {
       secretkeyaes,
       alg,
       false,
-      ["decrypt"]
+      ["decrypt"],
     );
   } catch (e) {
     return false;
@@ -3031,7 +3038,7 @@ async function decrypt_symmetric_stream(encmsgb, password) {
     encmsgchachab = await window.crypto.subtle.decrypt(
       alg,
       tmpkeyaes,
-      encmsg.encmsg
+      encmsg.encmsg,
     );
   } catch (e) {
     return false;
@@ -3045,7 +3052,7 @@ async function decrypt_symmetric_stream(encmsgb, password) {
       encmsgchacha,
       null,
       encmsg.noncechacha,
-      secretkeychacha
+      secretkeychacha,
     );
   } catch (e) {
     return false;
@@ -3068,7 +3075,7 @@ async function derive_key_from_password(password, salt) {
     randomsalt,
     _sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
     _sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
-    _sodium.crypto_pwhash_ALG_DEFAULT
+    _sodium.crypto_pwhash_ALG_DEFAULT,
   );
   return [key, randomsalt];
 }
@@ -3089,11 +3096,11 @@ function isUint8ArrayEqual(arr1, arr2) {
 async function download_blob(blob) {
   await _sodium.ready;
   const sodium = _sodium;
-  console.log("Blob found on chain:",blob);
+  console.log("Blob found on chain:", blob);
   const blobb64 = u8aToString(blob);
-  console.log("Blob found on chain base64:",blobb64);
+  console.log("Blob found on chain base64:", blobb64);
   const blobenc = base64ToUint8Array(blobb64);
-  console.log("Blob found on chain uitn8array:",blobenc);
+  console.log("Blob found on chain uitn8array:", blobenc);
   //if the encrypted key is not loaded already in the current session
   if (typeof encryptedprivatekey === "undefined") {
     // get encryption private key (which is encrypted against a password)
@@ -3125,7 +3132,7 @@ async function download_blob(blob) {
   // decrypt secret phrase using the supplied password
   let mnemonicPhrase = await decrypt_symmetric_stream(
     encryptedprivatekey,
-    encryptionpwd
+    encryptionpwd,
   );
   //convert array buffer to string
   mnemonicPhrase = arrayBufferToString(mnemonicPhrase);
@@ -3135,20 +3142,20 @@ async function download_blob(blob) {
     encryptionpwd = "";
     return;
   }
-  console.log("mnemonicPhrase",mnemonicPhrase);
+  console.log("mnemonicPhrase", mnemonicPhrase);
   // generate the key pair from the mnemonic phrase
   const seedkeys = mnemonicToMiniSecret(mnemonicPhrase);
   const keyspair = sodium.crypto_box_seed_keypair(seedkeys);
-  console.log("keyspair",keyspair);
+  console.log("keyspair", keyspair);
   //decrypt the encrypted blob
   let doc = await decrypt_asymmetric_stream(
     blobenc,
     keyspair.privateKey,
-    keyspair.publicKey
+    keyspair.publicKey,
   );
   if (doc == false) {
     alert(
-      "Error decrypting the document, it may be saved with a different encryption key"
+      "Error decrypting the document, it may be saved with a different encryption key",
     );
   }
   //console.log("doc",doc);
