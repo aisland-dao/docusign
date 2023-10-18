@@ -720,6 +720,8 @@ document.getElementById("docsignsign").onclick = async () => {
     //
     //update counterparts on the document table
     for (counterpart of counterparts) {
+      if(counterpart.length<48)
+        continue;
       if (docdata.account == currentAccount.address) {
         counterpartdb = counterpart;
       } else {
@@ -739,7 +741,7 @@ document.getElementById("docsignsign").onclick = async () => {
         "//" +
         window.location.host +
         "/updatedocumentcounterpart";
-      console.log("url", url);
+      console.log("url", url,"params",params);
       const response = await fetch(url + `?${qs.stringify(params)}`, {
         method: "GET",
       });
