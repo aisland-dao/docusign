@@ -411,6 +411,8 @@ async function mainloop() {
     const documentid = req.query.documentid;
     const pdf = req.query.pdf;
     const pt = req.query.pt; // public view token
+    const blob64=req.query.blob //blob if available from the blockchain
+    console.log("blob64",blob64);
     // check security token
     if (typeof token === "undefined" && typeof pt === "undefined") {
       console.log("ERROR: Missing token in request docview");
@@ -490,8 +492,19 @@ async function mainloop() {
       const edjsParser = edjsHTML();
       const fileNameDcs = "upload/" + rows[0].urlfile;
       //console.log("fileNameDcs:",fileNameDcs);
-      const contentFile = fs.readFileSync(fileNameDcs);
-      const contentFileObj = JSON.parse(contentFile.toString());
+      let contentFile;
+      let contentFileObj;
+      // read blob or file
+      if(blob64.length>0 && typeof blob64 !=='undefined'){
+        contentFile=atob(blob64);
+        //console.log("contentFile blob",contentFile);
+        contentFileObj = JSON.parse(contentFile);
+      } else {
+        contentFile = fs.readFileSync(fileNameDcs);
+        //console.log("contentFile",contentFile);
+        contentFileObj = JSON.parse(contentFile.toString());
+      }
+      
       //console.log("contentFile",contentFile);
       let html = "";
       if (typeof pdf !== "undefined")
@@ -556,16 +569,28 @@ async function mainloop() {
       });
       return;
     }
-    //send the any other type of file
-    let fileName = rows[0].urlfile;
-    res.sendFile(fileName, options, function (err) {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log("File Sent:", fileName);
-        return;
-      }
-    });
+    if(blob64.length==0 || typeof blob64 =='undefined'){
+      //send the any other type of file
+      let fileName = rows[0].urlfile;
+      res.sendFile(fileName, options, function (err) {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("File Sent:", fileName);
+          return;
+        }
+      });
+    } else {
+      // send blob content
+      res.send(atob(blob64),options,function(err){
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("Blob Sent:", blob64);
+          return;
+        }
+      });
+    }
   });
   // public view of a document for verification (using a security token
   app.get("/docverify", async function (req, res) {
