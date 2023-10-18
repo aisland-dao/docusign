@@ -151,9 +151,9 @@ document.getElementById("docview").onclick = async () => {
       let docUrl = await download_blob(blob);
       const response = await fetch(docUrl, {method: "GET",});
       let bJSON = await response.json();
-      console.log("bJSON",bJSON);
+      //console.log("bJSON",bJSON);
       blob64=btoa(JSON.stringify(bJSON))
-      console.log("blob64",blob64);
+      //console.log("blob64",blob64);
     } 
     const params = {
         account: currentAccount.address,
@@ -554,18 +554,18 @@ document.getElementById("docsignsign").onclick = async () => {
     msg = msg + "</center></div>";
     document.getElementById("docsignmsg").innerHTML = msg;
     //const injector = await web3FromSource(currentAccount.meta.source);
-    console.log("currentAccount.address", currentAccount.address);
+    //console.log("currentAccount.address", currentAccount.address);
     //load injector
     let injector;
     try {
       injector = await web3FromAddress(currentAccount.address);
     } catch (e) {
       console.log(e);
-      console.log("injector", injector);
+      //console.log("injector", injector);
       const allInjected = await web3Enable("docsig.aisland.io");
-      console.log("allInjected", allInjected);
+      //console.log("allInjected", allInjected);
       const allAccounts = await web3Accounts();
-      console.log("allAccounts", allAccounts);
+      //console.log("allAccounts", allAccounts);
       injector = await web3FromAddress(currentAccount.address);
     }
     if (currentAccount.address == docdata.account) {
@@ -743,7 +743,7 @@ document.getElementById("docsignsign").onclick = async () => {
         "//" +
         window.location.host +
         "/updatedocumentcounterpart";
-      console.log("url", url,"params",params);
+      //console.log("url", url,"params",params);
       const response = await fetch(url + `?${qs.stringify(params)}`, {
         method: "GET",
       });
@@ -928,7 +928,7 @@ async function connectWallet(accountid, event) {
   // returns an array of { address, meta: { name, source } }
   // meta.source contains the name of the extension that provides this account
   const allAccounts = await web3Accounts();
-  console.log("allAccounts", allAccounts);
+  //console.log("allAccounts", allAccounts);
   if (allAccounts.length == 0) {
     //invite the user to create an account
     let msg = '<div class="alert alert-warning" role="alert"><center>';
@@ -1624,7 +1624,7 @@ async function documentsave(evt) {
   formData.append("token", currentToken);
   formData.append("documentid", currentDocumentId);
   formData.append("templateid", currentTemplateId);
-  console.log("currentDocumentId", currentDocumentId);
+  //console.log("currentDocumentId", currentDocumentId);
   if (templatedoc) {
     formData.append("template", "yes");
   }
@@ -2499,7 +2499,7 @@ async function matchPassword() {
 //function to filter the template by tag
 // TODO - check since it's not used
 function tagfilter(evt) {
-  console.log("tagfilter", evt.currentTarget.param);
+  //console.log("tagfilter", evt.currentTarget.param);
   render_templates(evt.currentTarget.param);
   return;
 }
