@@ -344,7 +344,10 @@ document.getElementById("docsign").onclick = async () => {
       cp = cp + docdata.counterpart;
       if (docdata.othercounterparts != null) {
         let cps = docdata.othercounterparts.split(",");
-        for (let i = 0; i < cps.length; i++) cp = cp + "\n" + cps[i];
+        for (let i = 0; i < cps.length; i++) {
+          if(cps[i].lenght>=48)
+            cp = cp + "\n" + cps[i];
+        }
       }
       cp = cp + "</textarea>";
     } else {
@@ -359,7 +362,9 @@ document.getElementById("docsign").onclick = async () => {
       if (docdata.othercounterparts != null) {
         let cps = docdata.othercounterparts.split(",");
         for (let i = 0; i < cps.length; i++)
-          if (cps[i] != currentAccount.address) cp = cp + "\n" + cps[i];
+          if (cps[i] != currentAccount.address && cps[i].lenght>=48){
+             cp = cp + "\n" + cps[i];
+          }
       }
       cp = cp + "</textarea>";
     }
@@ -601,6 +606,8 @@ document.getElementById("docsignsign").onclick = async () => {
     let counterpartdb = "";
     let publickeyCounterparts = [];
     for (counterpart of counterparts) {
+      if(counterpart.length<48)
+        continue;
       //check for counterpart addresses
       if (docdata.account == currentAccount.address) {
         counterpartdb = counterpart;
@@ -1241,10 +1248,12 @@ async function render_main(section) {
   };
   // connect the button to the editing of an empty document
   document.getElementById("blankdocument").onclick = () => {
+    currentDocumentId=0;
     render_editor_document();
   };
   // connect the button to the templates management
   document.getElementById("templates").onclick = () => {
+    currentDocumentId=0;  
     render_templates();
   };
   // set active tab
@@ -1261,10 +1270,12 @@ async function render_main(section) {
     };
     // connect the button to the editing of an empty document
     document.getElementById("create-blank").onclick = () => {
+      currentDocumentId=0;
       render_editor_document();
     };
     // connect the button to the templates management
     document.getElementById("select-template").onclick = () => {
+      currentDocumentId=0;
       render_templates();
     };
   }
