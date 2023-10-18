@@ -116,6 +116,15 @@ The dapp will be accessible browsing:
 ```
 http://localhost:3000
 ```
+if you use a reverse proxy like Nginx you may need to change the line:  
+```
+- BASEURL="http://localhost:3000"
+```
+in docker-compose.yml with the public domain name and protocol, for example, it may become:  
+```
+- BASEURL="https://docsig.aisland.io"
+```
+
 
 ## Substrate Pallet
 The Dapp uses a dedicated pallet named "docsig". The source code and an example of implementation in the runtime can be found on Aisland-node:  
