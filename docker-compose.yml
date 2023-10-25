@@ -32,6 +32,7 @@ services:
       - DB_NAME=docsig
       - DB_USER=root
       - DB_PWD=12AW-9872-pkDF
+      - BASEURL="http://localhost:3000"
 #    volumes:
 #      - ./:/home/node/app
     ports:

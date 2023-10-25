@@ -6,6 +6,7 @@ export DB_HOST="localhost"
 export DB_NAME="testdocsig"
 export DB_USER="testdocsig"
 export DB_PWD="As827-1727-1619"
+export BASEURL="http://localhost:3000"
 cp test-upload/* upload/
 node docsig-server.js
 #pkill -fe 'docsig-server'

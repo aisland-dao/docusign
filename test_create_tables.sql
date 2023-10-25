@@ -38,6 +38,7 @@ CREATE TABLE `documents` (
   `signaturetoken` varchar(128) DEFAULT '',
   `counterpart` varchar(64) DEFAULT '',
   `othercounterparts` text DEFAULT NULL,
+  `publicviewtoken` varchar(128) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `documentsaccount` (`account`),
   KEY `signersaccounts` (`account`)
@@ -51,8 +52,8 @@ CREATE TABLE `documents` (
 LOCK TABLES `documents` WRITE;
 /*!40000 ALTER TABLE `documents` DISABLE KEYS */;
 INSERT INTO `documents` VALUES
-(95,'5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B','draft 5','Draft.dcs','026af8f3fb5f70e10361b31506833b30',308,'text/json','320a40c9bc6487eb86a8c463b8bbbb0b200d0250ec9741545b52c5130395ba49','waiting','2023-08-28 06:36:52','123f31793c7879b717813e1670e038171ce5fbaa1eb0fe7cee1e29d75a7cef3b','5C4qhY5c8eiNfzuFHfFrohERpTNBM286KiWB3YTwx6X9aDho',NULL),
-(96,'5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B','Draft 1.dcs','Draft 1.dcs','59af0e234e8b79f13100d360131a563d',149,'text/json','0e16f6a1eb0e5249c87571969c78feb3d0db1ecac1cdb3add0d669270bf07d2a','draft','2023-08-28 06:40:47','','',NULL);
+(95,'5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B','draft 5','Draft.dcs','026af8f3fb5f70e10361b31506833b30',308,'text/json','320a40c9bc6487eb86a8c463b8bbbb0b200d0250ec9741545b52c5130395ba49','waiting','2023-08-28 06:36:52','123f31793c7879b717813e1670e038171ce5fbaa1eb0fe7cee1e29d75a7cef3b','5C4qhY5c8eiNfzuFHfFrohERpTNBM286KiWB3YTwx6X9aDho',NULL,''),
+(96,'5FYib34nmpSpmkarhh2oxuvkVgknNF4QMQAx493zNpmgpj8B','Draft 1.dcs','Draft 1.dcs','59af0e234e8b79f13100d360131a563d',149,'text/json','0e16f6a1eb0e5249c87571969c78feb3d0db1ecac1cdb3add0d669270bf07d2a','draft','2023-08-28 06:40:47','','',NULL,'');
 /*!40000 ALTER TABLE `documents` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -162,6 +163,7 @@ CREATE TABLE `templates` (
   `content` text DEFAULT NULL,
   `creator` varchar(64) DEFAULT NULL,
   `dtlastupdate` datetime NOT NULL,
+  `private` varchar(1) DEFAULT 'Y',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -173,7 +175,7 @@ CREATE TABLE `templates` (
 LOCK TABLES `templates` WRITE;
 /*!40000 ALTER TABLE `templates` DISABLE KEYS */;
 INSERT INTO `templates` VALUES
-(1,'test','test','{\"time\":1693190443866,\"blocks\":[{\"id\":\"7G_LT1iFlk\",\"type\":\"paragraph\",\"data\":{\"text\":\"Second test document\",\"alignment\":\"left\"}}],\"version\":\"2.27.2\"}',NULL,'2023-08-28 07:18:30');
+(1,'test','test','{\"time\":1693190443866,\"blocks\":[{\"id\":\"7G_LT1iFlk\",\"type\":\"paragraph\",\"data\":{\"text\":\"Second test document\",\"alignment\":\"left\"}}],\"version\":\"2.27.2\"}',NULL,'2023-08-28 07:18:30','Y');
 /*!40000 ALTER TABLE `templates` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -224,4 +226,3 @@ UNLOCK TABLES;
 CREATE USER 'testdocsig'@'localhost' IDENTIFIED BY 'As827-1727-1619';
 GRANT ALL PRIVILEGES ON testdocsig.* TO 'testdocsig'@'localhost';
 FLUSH PRIVILEGES;
-
