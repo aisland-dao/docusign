@@ -411,7 +411,7 @@ async function mainloop() {
     const documentid = req.query.documentid;
     const pdf = req.query.pdf;
     const pt = req.query.pt; // public view token
-    const blob64=req.query.blob //blob if available from the blockchain
+    const blob64=req.query.blob || ""; //blob if available from the blockchain
     console.log("blob64",blob64);
     // check security token
     if (typeof token === "undefined" && typeof pt === "undefined") {
@@ -1176,7 +1176,7 @@ async function mainloop() {
   app.get("/updatedocumentcounterpart", async function (req, res) {
     // parameters required
     const token = req.query.token;
-    const signaturetoken = req.query.signaturetoken;
+    const signaturetoken = req.query.signaturetoken || null;
     const account = req.query.account;
     const documentid = req.query.documentid;
     const documentaccount = req.query.documentaccount;
