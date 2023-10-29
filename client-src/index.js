@@ -61,7 +61,7 @@ const { unpack, pack } = require("msgpackr");
 //***********************************************************
 // ** you may change this to your blockchain
 //***********************************************************
-const BLOCKCHAINENDPOINT = "wss://testnet.aisland.io";
+const BLOCKCHAINENDPOINT = "wss://mainnet.aisland.io";
 //***********************************************************
 // assign crypto variable
 let lastaccountidx = 0;

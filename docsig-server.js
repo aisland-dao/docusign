@@ -16,7 +16,7 @@ const nodeHtmlToImage = require("node-html-to-image");
 const { encodeToDataUrl } = require("node-font2base64");
 const QRCode = require("qrcode");
 let api;
-const provider = new WsProvider("wss://testnet.aisland.io");
+const provider = new WsProvider("wss://mainnet.aisland.io");
 
 //setuw web express
 let app = express();
