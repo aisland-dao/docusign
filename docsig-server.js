@@ -1905,6 +1905,7 @@ async function uploadFiles(req, res) {
     const hashSum = crypto.createHash("sha256");
     hashSum.update(fileBuffer);
     const hash = hashSum.digest("hex");
+    console.log("hash",hash);
     if (template == "yes") {
       let content = fs.readFileSync("upload/" + req.files[i].filename);
       // new template
@@ -1922,12 +1923,10 @@ async function uploadFiles(req, res) {
       }
     } else {
       // new document
-      if (documentid == 0) {
+      if (documentid == 0 || typeof documentid === 'undefined') {
         //generate public view token
         let publicviewtoken = crypto.randomBytes(32).toString("hex");
-        await connection.execute(
-          "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?,othercounterparts=''",
-          [
+        let d=[
             account,
             req.files[i].originalname,
             req.files[i].originalname,
@@ -1936,13 +1935,13 @@ async function uploadFiles(req, res) {
             req.files[i].mimetype,
             hash,
             publicviewtoken,
-          ],
-        );
+          ];
+        console.log("d",d);
+        await connection.execute(
+          "insert into documents set account=?,description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now(),publicviewtoken=?,othercounterparts=''",d);
       } else {
         //update document
-        await connection.execute(
-          "update documents set description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where id=? and account=?",
-          [
+        let d=[
             req.files[i].originalname,
             req.files[i].originalname,
             req.files[i].filename,
@@ -1951,8 +1950,10 @@ async function uploadFiles(req, res) {
             hash,
             documentid,
             account,
-          ],
-        );
+          ];
+          console.log("d update",d);
+        await connection.execute(
+          "update documents set description=?,originalfilename=?,urlfile=?,size=?,mimetype=?,hash=?,dtlastupdate=now() where id=? and account=?",d);
       }
     }
   }
