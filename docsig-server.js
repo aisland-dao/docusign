@@ -1238,10 +1238,10 @@ async function mainloop() {
       [account, signaturetoken, documentid],
     );
     if (rows.length == 0) {
-      const answer = '{"answer":"KO","message":"document not found"}';
+      const answer = '{"answer":"OK","message":"no need update"}';
       console.log("answwer", answer);
       res.send(answer);
-      connection.end();
+      await connection.end();
       return;
     }
     // write the counterpart in the main field
